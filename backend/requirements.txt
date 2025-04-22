@@ -1,0 +1,7 @@
+Django==3.2.10
+djangorestframework==3.12.4
+django-cors-headers==3.10.1
+pandas
+openpyxl
+geopy
+djangorestframework-simplejwt
