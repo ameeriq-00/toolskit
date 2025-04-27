@@ -53,3 +53,4 @@ Thumbs.db
 .coverage
 coverage.xml
 htmlcov/
+backend\site_information
