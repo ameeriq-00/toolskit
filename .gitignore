@@ -54,3 +54,4 @@ Thumbs.db
 coverage.xml
 htmlcov/
 backend\site_information
+*.xlsx
