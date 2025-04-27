@@ -55,4 +55,4 @@ coverage.xml
 htmlcov/
 backend\site_information
 .xlsx
-*.xlsx
+Site_address_zz.xlsx
