@@ -48,10 +48,3 @@ Thumbs.db
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Coverage reports
-.coverage
-coverage.xml
-htmlcov/
-backend\site_information
-.xlsx
-Site_address_zz.xlsx
