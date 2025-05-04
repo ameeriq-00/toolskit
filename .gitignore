@@ -27,8 +27,7 @@ build/
 
 # Node.js
 node_modules/
-package.json
-package-lock.json
+
 
 # IDEs and Editors
 .vscode/
