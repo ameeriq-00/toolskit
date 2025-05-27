@@ -95,7 +95,7 @@ def upload_3g_sites(request):
         
         # التحقق من الأعمدة المطلوبة
         required_columns = [
-            'RNC Site ID', 'Site ID', 'Cell ID', 'Full Site Name', 'Cell_Name', 
+            'RNC', 'Site ID', 'Cell ID', 'Full Site Name', 'Cell_Name', 
             'LAC', 'Geo-City', 'Longitude', 'Latitude', 'Azimuth', 
             'Mechanical Tilt', 'Elect. Tilt', 'Antenna Height'
         ]
