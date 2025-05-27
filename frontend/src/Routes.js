@@ -1,15 +1,15 @@
-// frontend/src/Routes.js
-
-import React from 'react';
-import { Route, Routes } from 'react-router-dom';
-import ExcelAnalyzer from './pages/ExcelAnalyzer';
-import ExcelAnalyzerZ from './pages/ExcelAnalyzerZ';
+import React from "react";
+import { Route, Routes } from "react-router-dom";
+import ExcelAnalyzer from "./pages/ExcelAnalyzer";
+import ExcelAnalyzerZ from "./pages/ExcelAnalyzerZ";
 import SheetsComparison from "./pages/SheetsComparison";
-import SiteInformationUpload from './components/SiteInformationUpload';
-import Login from './pages/Login';
-import Home from './pages/Home';
-import Unauthorized from './pages/Unauthorized';
-import ProtectedRoute from './components/ProtectedRoute';
+import SiteSearchPage from "./pages/SiteSearchPage"; // جديد
+import SiteManagementPage from "./pages/SiteManagementPage"; // جديد (للأدمن)
+import SiteInformationUpload from "./components/SiteInformationUpload"; // القديم (سنبقيه للتوافق)
+import Login from "./pages/Login";
+import Home from "./pages/Home";
+import Unauthorized from "./pages/Unauthorized";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const AppRoutes = () => {
   return (
@@ -48,6 +48,28 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* صفحة البحث الجديدة - متاحة لجميع المستخدمين */}
+      <Route
+        path="/site-search"
+        element={
+          <ProtectedRoute>
+            <SiteSearchPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* صفحة إدارة الأبراج الجديدة - للأدمن فقط */}
+      <Route
+        path="/site-management"
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <SiteManagementPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* الصفحة القديمة - محتفظين بها للتوافق العكسي */}
       <Route
         path="/upload-site-information"
         element={
