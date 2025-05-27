@@ -37,7 +37,6 @@ class StandardAnalyzer:
             
             results = {
                 "filtered_calls": self.filter_and_aggregate_calls(df),
-                "aggregated_caller_numbers": self.aggregate_by_caller_number(df),
                 "imei_usage": self.aggregate_imei_usage(df),
                 "most_visited_sites": self.summarize_most_visited_sites(df),
                 "time_analysis": time_analysis,
@@ -52,47 +51,92 @@ class StandardAnalyzer:
             traceback.print_exc()
             raise
 
+    
+    # backend/api/services/standard_analyzer.py
+
     def filter_and_aggregate_calls(self, df):
-        """Filter and aggregate calls for standard format"""
+        """Filter and aggregate calls for standard format with simple, general filtering"""
+        
         def process_number(number):
-            # Convert to string and strip any whitespace
+            """Process and clean phone numbers"""
             number_str = str(number).strip()
-            # If starts with 964, remove it
-            return number_str[3:] if number_str.startswith('964') else number_str
-
-        def is_valid_number(number):
-            # Check if all characters are digits
-            return str(number).strip().isdigit()
-
-        # First, process all numbers
+            
+            # Remove country code 964 for Iraqi numbers only
+            if number_str.startswith('964'):
+                return number_str[3:]
+            
+            # Keep all other numbers as they are
+            return number_str
+        
+        def is_valid_phone_number(number):
+            """Simple and general phone number validation"""
+            number_str = str(number).strip()
+            
+            # Must be digits only
+            if not number_str.isdigit():
+                return False
+            
+            # Service numbers (short codes) - reject numbers with 4 digits or less
+            if len(number_str) <= 4:
+                return False
+            
+            # Very long numbers (suspicious) - reject numbers longer than 15 digits
+            if len(number_str) > 15:
+                return False
+            
+            # Accept all numbers between 5-15 digits
+            # This covers:
+            # - Iraqi mobile numbers: 10 digits (after removing 964)
+            # - International numbers: varies by country (5-15 digits)
+            # - Landline numbers: varies by country (5-15 digits)
+            if 5 <= len(number_str) <= 15:
+                return True
+            
+            return False
+    
+        # Process numbers
         df['CALLER_NUMBER'] = df['CALLER_NUMBER'].apply(process_number)
         df['CALLED_NUMBER'] = df['CALLED_NUMBER'].apply(process_number)
-
-        # Filter for numbers that contain only digits
+    
+        # Filter for valid phone numbers only
         filtered_df = df[
-            (df['CALLER_NUMBER'].apply(is_valid_number)) | 
-            (df['CALLED_NUMBER'].apply(is_valid_number))
+            (df['CALLER_NUMBER'].apply(is_valid_phone_number)) | 
+            (df['CALLED_NUMBER'].apply(is_valid_phone_number))
         ]
-
-        # Aggregate and sort
-        call_counts = filtered_df.groupby('CALLER_NUMBER').size().reset_index(name='Number_of_Calls')
+    
+        # Count calls for valid numbers only
+        caller_counts = filtered_df[filtered_df['CALLER_NUMBER'].apply(is_valid_phone_number)]['CALLER_NUMBER'].value_counts()
+        called_counts = filtered_df[filtered_df['CALLED_NUMBER'].apply(is_valid_phone_number)]['CALLED_NUMBER'].value_counts()
         
-        # Filter the results again to ensure only numeric values
-        call_counts = call_counts[call_counts['CALLER_NUMBER'].apply(is_valid_number)]
+        # Combine both counts
+        all_call_counts = caller_counts.add(called_counts, fill_value=0)
         
-        # Sort by Number_of_Calls in descending order
-        return call_counts.sort_values('Number_of_Calls', ascending=False).to_dict('records')
+        # Convert to DataFrame
+        result_df = all_call_counts.reset_index()
+        result_df.columns = ['Number', 'Number_of_Calls']
+        
+        # Sort by count (descending)
+        result_df = result_df.sort_values('Number_of_Calls', ascending=False)
+        
+        # Convert counts to integers
+        result_df['Number_of_Calls'] = result_df['Number_of_Calls'].astype(int)
+        
+        # Convert to dict
+        result = result_df.to_dict('records')
+        
+        print(f"Found {len(result)} valid phone numbers with call counts")
+        print(f"Top 5 numbers: {result[:5] if len(result) >= 5 else result}")
+        
+        # Debug: Show some examples of filtered out numbers
+        all_numbers = set(df['CALLER_NUMBER'].tolist() + df['CALLED_NUMBER'].tolist())
+        invalid_numbers = [num for num in all_numbers if not is_valid_phone_number(num)]
+        print(f"Filtered out {len(invalid_numbers)} invalid/service numbers")
+        print(f"Examples of filtered numbers: {list(invalid_numbers)[:10]}")
+        
+        return result
 
-    def aggregate_by_caller_number(self, df):
-        """Aggregate by caller number for standard format"""
-        def is_valid_number(number):
-            return isinstance(number, str) and not number.startswith('964') and not number.startswith('7')
 
-        valid_numbers = df[df['CALLER_NUMBER'].apply(is_valid_number) | 
-                           df['CALLED_NUMBER'].apply(is_valid_number)]
-
-        aggregated = valid_numbers.groupby('CALLER_NUMBER').size().reset_index(name='Number_of_Calls')
-        return aggregated.sort_values('Number_of_Calls', ascending=False).to_dict('records')
+    
 
     def aggregate_imei_usage(self, df):
         """Aggregate IMEI usage for standard format"""

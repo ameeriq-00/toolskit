@@ -16,6 +16,7 @@ urlpatterns = [
     # Analysis endpoints
     path('analyze-excel/', analysis_views.analyze_excel, name='analyze_excel'),
     path('analyze-excel-z/', analysis_views.analyze_excel_z, name='analyze_excel_z'),
+    path('compare-sheets/', analysis_views.compare_excel_sheets, name='compare_sheets'),
     
     # Site management endpoints
     path('upload-site-info/', site_views.upload_site_info, name='upload_site_info'),

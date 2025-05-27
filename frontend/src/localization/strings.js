@@ -349,7 +349,46 @@ const strings = {
 
   // Table Pagination
   rowsPerPage: "عدد الصفوف في الصفحة",
-  of: "من"
+  of: "من",
+
+  // Sheet Comparison
+  sheetsComparison: "مقارنة الشيتات",
+  compareSheets: "مقارنة الشيتات",
+  uploadFiles: "رفع الملفات",
+  chooseFile: "اختر ملف",
+  personName: "اسم الشخص/الشيت",
+  fileFormat: "نوع الملف",
+  addAnotherFile: "إضافة ملف آخر",
+  startComparison: "بدء المقارنة",
+  comparing: "جاري المقارنة...",
+  needTwoFiles: "يرجى رفع ملفين على الأقل مع تسميتهما",
+  
+  // Results
+  overlapSummary: "ملخص التطابق",
+  commonContacts: "الأرقام المشتركة",
+  overlapMatrix: "مصفوفة التطابق",
+  interactiveNetwork: "الشبكة التفاعلية",
+  
+  // Statistics
+  commonNumbers: "أرقام مشتركة",
+  overlapPercentage: "نسبة التطابق",
+  appearsIn: "يظهر في",
+  totalSheets: "شيتات",
+  
+  // Network Graph
+  showAllConnections: "جميع الاتصالات",
+  showCommonOnly: "الاتصالات المشتركة فقط",
+  showLabels: "إظهار الأسماء",
+  sheetOwners: "أشخاص الشيتات",
+  sharedContacts: "جهات اتصال مشتركة",
+  individualContacts: "جهات اتصال فردية",
+  selectedNodeInfo: "معلومات العقدة المحددة",
+  nodeType: "النوع",
+  sheetPerson: "شخص الشيت",
+  contact: "جهة اتصال",
+  
+  // Matrix
+  overlapMatrixDescription: "كل خلية تظهر نسبة الأرقام المشتركة من الشيت في الصف مقارنة بالشيت في العمود",
 };
 
 export default strings;

@@ -4,6 +4,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import ExcelAnalyzer from './pages/ExcelAnalyzer';
 import ExcelAnalyzerZ from './pages/ExcelAnalyzerZ';
+import SheetsComparison from "./pages/SheetsComparison";
 import SiteInformationUpload from './components/SiteInformationUpload';
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -15,26 +16,46 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/" element={
-        <ProtectedRoute>
-          <Home />
-        </ProtectedRoute>
-      } />
-      <Route path="/excel-analyzer" element={
-        <ProtectedRoute>
-          <ExcelAnalyzer />
-        </ProtectedRoute>
-      } />
-      <Route path="/excel-analyzer-z" element={
-        <ProtectedRoute>
-          <ExcelAnalyzerZ />
-        </ProtectedRoute>
-      } />
-      <Route path="/upload-site-information" element={
-        <ProtectedRoute adminOnly={true}>
-          <SiteInformationUpload />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/excel-analyzer"
+        element={
+          <ProtectedRoute>
+            <ExcelAnalyzer />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/excel-analyzer-z"
+        element={
+          <ProtectedRoute>
+            <ExcelAnalyzerZ />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sheets-comparison"
+        element={
+          <ProtectedRoute>
+            <SheetsComparison />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/upload-site-information"
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <SiteInformationUpload />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

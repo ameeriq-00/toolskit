@@ -20,18 +20,35 @@ const NavigationBar = () => {
         <Typography variant="h6" style={{ flexGrow: 1 }}>
           Excel Analysis Tools
         </Typography>
-        <Button color="inherit" onClick={() => navigate('/')}>Home</Button>
-        <Button color="inherit" onClick={() => navigate('/excel-analyzer')}>Excel Analyzer</Button>
-        <Button color="inherit" onClick={() => navigate('/excel-analyzer-z')}>Excel Analyzer Z</Button>
+        <Button color="inherit" onClick={() => navigate("/")}>
+          Home
+        </Button>
+        <Button color="inherit" onClick={() => navigate("/excel-analyzer")}>
+          Excel Analyzer
+        </Button>
+        <Button color="inherit" onClick={() => navigate("/excel-analyzer-z")}>
+          Excel Analyzer Z
+        </Button>
+        <Button color="inherit" onClick={() => navigate("/sheets-comparison")}>
+          مقارنة الشيتات
+        </Button>
         {user.is_staff && (
-          <Button color="inherit" onClick={() => navigate('/upload-site-information')}>
+          <Button
+            color="inherit"
+            onClick={() => navigate("/upload-site-information")}
+          >
             Upload Site Information
           </Button>
         )}
-        <Button color="inherit" onClick={() => {
-          logout();
-          navigate('/login');
-        }}>Logout</Button>
+        <Button
+          color="inherit"
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
+        >
+          Logout
+        </Button>
       </Toolbar>
     </AppBar>
   );

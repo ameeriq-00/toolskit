@@ -71,7 +71,6 @@ class ZFormatAnalyzer:
 
         return {
             "filtered_calls": self.filter_and_aggregate_calls_new(main_df),
-            "aggregated_caller_numbers": self.aggregate_by_caller_number_new(main_df),
             "imei_usage": self.aggregate_imei_usage_new(imei_df, sheet_owner_number),
             "most_visited_sites": self.summarize_most_visited_sites_new(main_df, sheet_owner_number),
             "time_analysis": analyze_time_patterns_z(main_df, sheet_owner_number),
@@ -81,46 +80,89 @@ class ZFormatAnalyzer:
         }
 
     def filter_and_aggregate_calls_new(self, df):
-        """Filter and aggregate calls for Z format"""
-        def is_valid_number(number):
-            # Check if all characters are digits
-            return str(number).strip().isdigit()
-
-        # Convert both columns to string type
-        df['Calling Number'] = df['Calling Number'].astype(str)
-        df['Called Number'] = df['Called Number'].astype(str)
-
-        # Filter for numbers that contain only digits
+        """Filter and aggregate calls for Z format with simple, general filtering"""
+        
+        def process_number(number):
+            """Process and clean phone numbers"""
+            number_str = str(number).strip()
+            
+            # Remove country code 964 for Iraqi numbers only
+            if number_str.startswith('964'):
+                return number_str[3:]
+            
+            # Keep all other numbers as they are
+            return number_str
+        
+        def is_valid_phone_number(number):
+            """Simple and general phone number validation"""
+            number_str = str(number).strip()
+            
+            # Must be digits only
+            if not number_str.isdigit():
+                return False
+            
+            # Service numbers (short codes) - reject numbers with 4 digits or less
+            if len(number_str) <= 4:
+                return False
+            
+            # Very long numbers (suspicious) - reject numbers longer than 15 digits
+            if len(number_str) > 15:
+                return False
+            
+            # Accept all numbers between 5-15 digits
+            # This covers:
+            # - Iraqi mobile numbers: 10 digits (after removing 964)
+            # - International numbers: varies by country (5-15 digits)
+            # - Landline numbers: varies by country (5-15 digits)
+            if 5 <= len(number_str) <= 15:
+                return True
+            
+            return False
+    
+        # Convert columns to string and process
+        df['Calling Number'] = df['Calling Number'].astype(str).apply(process_number)
+        df['Called Number'] = df['Called Number'].astype(str).apply(process_number)
+    
+        # Filter for valid phone numbers only
         filtered_df = df[
-            (df['Calling Number'].apply(is_valid_number)) | 
-            (df['Called Number'].apply(is_valid_number))
+            (df['Calling Number'].apply(is_valid_phone_number)) | 
+            (df['Called Number'].apply(is_valid_phone_number))
         ]
-
-        # Count calls for valid numbers only
-        calling_counts = filtered_df[filtered_df['Calling Number'].apply(is_valid_number)]['Calling Number'].value_counts()
-        called_counts = filtered_df[filtered_df['Called Number'].apply(is_valid_number)]['Called Number'].value_counts()
+    
+        # Count calls for valid numbers
+        calling_counts = filtered_df[filtered_df['Calling Number'].apply(is_valid_phone_number)]['Calling Number'].value_counts()
+        called_counts = filtered_df[filtered_df['Called Number'].apply(is_valid_phone_number)]['Called Number'].value_counts()
         
         # Combine counts
-        call_counts = calling_counts.add(called_counts, fill_value=0)
+        all_call_counts = calling_counts.add(called_counts, fill_value=0)
+    
+        # Convert to DataFrame
+        result_df = all_call_counts.reset_index()
+        result_df.columns = ['Number', 'Number_of_Calls']
         
-        # Filter to ensure only numeric values
-        call_counts = call_counts[call_counts.index.map(is_valid_number)]
-
-        # Convert to final format and sort
-        return call_counts.sort_values(ascending=False)\
-            .reset_index()\
-            .rename(columns={'index': 'Number', 0: 'Number_of_Calls'})\
-            .to_dict('records')
-
-    def aggregate_by_caller_number_new(self, df):
-        """Aggregate by caller number for Z format"""
-        def is_valid_number(number):
-            return isinstance(number, str) and not number.startswith('964') and not number.startswith('7')
+        # Sort by count (descending)
+        result_df = result_df.sort_values('Number_of_Calls', ascending=False)
         
-        valid_numbers = df[(df['Calling Number'].apply(is_valid_number)) | (df['Called Number'].apply(is_valid_number))]
-        aggregated = valid_numbers['Calling Number'].value_counts().reset_index()
-        aggregated.columns = ['Number', 'Number_of_Calls']
-        return aggregated.sort_values('Number_of_Calls', ascending=False).to_dict('records')
+        # Convert counts to integers
+        result_df['Number_of_Calls'] = result_df['Number_of_Calls'].astype(int)
+        
+        # Convert to dict
+        result = result_df.to_dict('records')
+        
+        print(f"Z-Format: Found {len(result)} valid phone numbers with call counts")
+        print(f"Top 5 numbers: {result[:5] if len(result) >= 5 else result}")
+        
+        # Debug: Show filtered numbers
+        all_numbers = set(df['Calling Number'].tolist() + df['Called Number'].tolist())
+        invalid_numbers = [num for num in all_numbers if not is_valid_phone_number(num)]
+        print(f"Z-Format: Filtered out {len(invalid_numbers)} invalid/service numbers")
+        print(f"Examples of filtered numbers: {list(invalid_numbers)[:10]}")
+        
+        return result
+    
+
+
+    
 
     def aggregate_imei_usage_new(self, df, sheet_owner_number):
         """Aggregate IMEI usage for Z format"""

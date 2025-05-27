@@ -12,7 +12,6 @@ import CallPatternsDashboard from '../components/CallPatternsDashboard';
 import ImeiAnalysisDashboard from '../components/ImeiAnalysisDashboard';
 import MostVisitedSitesDashboard from '../components/MostVisitedSitesDashboard';
 import * as XLSX from 'xlsx';
-import DataExplorer from '../components/DataExplorer';
 
 
 
@@ -212,22 +211,19 @@ const ExcelAnalyzer = () => {
         <Box sx={{ width: '100%', mt: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange}>
             <Tab label={strings.filteredCalls} />
-            <Tab label={strings.aggregatedCallerNumbers} />
             <Tab label={strings.imeiUsage} />
             <Tab label={strings.mostVisitedSites} />
             <Tab label={strings.timeAnalysis} />
             <Tab label={strings.movementAnalysis} />  {/* New tab */}
             <Tab label={strings.siteMap} />
-            <Tab label={strings.dataExplorer} />
 
 
           </Tabs>
           <Box sx={{ p: 3 }}>
             {activeTab === 0 && <DataTable data={analysisResult.filtered_calls} />}
-            {activeTab === 1 && <DataTable data={analysisResult.aggregated_caller_numbers} />}
-            {activeTab === 2 && <ImeiAnalysisDashboard imeiData={analysisResult.imei_usage} />}
-            {activeTab === 3 && <MostVisitedSitesDashboard sites={analysisResult.most_visited_sites} />}
-            {activeTab === 4 && (
+            {activeTab === 1 && <ImeiAnalysisDashboard imeiData={analysisResult.imei_usage} />}
+            {activeTab === 2 && <MostVisitedSitesDashboard sites={analysisResult.most_visited_sites} />}
+            {activeTab === 3 && (
                             <TimeAnalysisDashboard 
                                 timeData={analysisResult.time_analysis}
                                 callPatterns={analysisResult.call_patterns}
@@ -235,12 +231,9 @@ const ExcelAnalyzer = () => {
                                 isZFormat={false}
                             />
                         )}
-            {activeTab === 5 && <MovementMap movementData={analysisResult.movement_analysis} />}
-            {activeTab === 6 && <SiteMap sites={analysisResult.most_visited_sites} />}
-            {activeTab === 7 && <DataExplorer  // Add DataExplorer component
-                            data={originalData}
-                            isZFormat={false}
-                        />}
+            {activeTab === 4 && <MovementMap movementData={analysisResult.movement_analysis} />}
+            {activeTab === 5 && <SiteMap sites={analysisResult.most_visited_sites} />}
+
 
           </Box>
         </Box>

@@ -10,7 +10,6 @@ import CallPatternsDashboard from '../components/CallPatternsDashboard';
 import ImeiAnalysisDashboard from '../components/ImeiAnalysisDashboard';
 import MostVisitedSitesDashboard from '../components/MostVisitedSitesDashboard';
 import * as XLSX from 'xlsx';
-import DataExplorer from '../components/DataExplorer';
 
 
 
@@ -169,7 +168,6 @@ const ExcelAnalyzerZ = () => {
             <Tab label={strings.timeAnalysis} />
             <Tab label={strings.movementAnalysis} />
             <Tab label={strings.siteMap} />
-            <Tab label={strings.dataExplorer} />
 
           </Tabs>
           <Box sx={{ p: 3 }}>
@@ -195,11 +193,7 @@ const ExcelAnalyzerZ = () => {
             {activeTab === 5 && (
               <SiteMap sites={results.most_visited_sites || []} />
             )}
-            {activeTab === 6 && <DataExplorer  // Add DataExplorer component
-                            data={originalData}
-                            isZFormat={true}
-                        />}
-
+            
           </Box>
         </Box>
       )}

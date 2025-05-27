@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from ..services.standard_analyzer import StandardAnalyzer
 from ..services.z_analyzer import ZFormatAnalyzer
-
+from ..services.comparison_analyzer import ComparisonAnalyzer
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -48,4 +48,43 @@ def analyze_excel_z(request):
         return Response(results)
     except Exception as e:
         print(f"Error in analyze_excel_z: {str(e)}")
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def compare_excel_sheets(request):
+    """Compare multiple Excel sheets for overlap analysis"""
+    try:
+        # Validate that we have files
+        if not request.FILES:
+            return Response({"error": "No files uploaded"}, status=400)
+        
+        # Parse the files and their metadata
+        files_data = []
+        
+        # Get files from request
+        for key, file in request.FILES.items():
+            # Extract file info from form data
+            file_name = request.data.get(f'{key}_name', f'Sheet {len(files_data) + 1}')
+            file_format = request.data.get(f'{key}_format', 'standard')
+            
+            files_data.append({
+                'file': file,
+                'name': file_name,
+                'format': file_format
+            })
+        
+        if len(files_data) < 2:
+            return Response({"error": "Need at least 2 files for comparison"}, status=400)
+        
+        # Perform comparison analysis
+        analyzer = ComparisonAnalyzer()
+        results = analyzer.analyze_multiple_sheets(files_data)
+        
+        return Response(results)
+        
+    except Exception as e:
+        print(f"Error in compare_excel_sheets: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({"error": str(e)}, status=500)
