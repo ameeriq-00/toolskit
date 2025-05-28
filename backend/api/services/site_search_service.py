@@ -2,7 +2,7 @@
 
 import re
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from django.db.models import Q
 from ..models import (
     TwoGSiteInformation, 
@@ -15,68 +15,36 @@ logger = logging.getLogger(__name__)
 
 
 class UnifiedSiteSearchService:
-    """
-    خدمة البحث الموحدة للأبراج
-    تدعم البحث في جميع أنواع الأبراج (2G, 3G, 4G, Z Format)
-    """
-    
-    def __init__(self):
-        self.search_strategies = {
-            '2G': self._search_2g_sites,
-            '3G': self._search_3g_sites,
-            '4G': self._search_4g_sites,
-            'Z': self._search_z_sites,
-            'ALL': self._search_all_sites
-        }
+    """خدمة البحث الموحدة للأبراج - نظيفة وفعالة"""
     
     def search_sites(self, search_params: Dict) -> Dict:
-        """
-        البحث الرئيسي عن الأبراج
-        
-        Args:
-            search_params: {
-                'format_type': '2G'|'3G'|'4G'|'Z'|'ALL',
-                'site_id': 'ANB0001',
-                'sector': '1' (اختياري),
-                'site_name': 'Alzawayah' (اختياري),
-                'cell_name': 'U9_zawayah_ANB0001-A1' (اختياري),
-                'city': 'Al-Anbar' (اختياري)
-            }
-        
-        Returns:
-            {
-                'success': bool,
-                'results': List[Dict],
-                'total_found': int,
-                'search_info': Dict
-            }
-        """
+        """البحث الرئيسي عن الأبراج"""
         try:
             format_type = search_params.get('format_type', 'ALL').upper()
+            results = []
             
-            if format_type not in self.search_strategies:
-                return {
-                    'success': False,
-                    'error': f'نوع البحث غير مدعوم: {format_type}',
-                    'results': [],
-                    'total_found': 0
-                }
+            if format_type in ['2G', 'ALL']:
+                results.extend(self._search_2g(search_params))
             
-            # تنفيذ البحث
-            search_func = self.search_strategies[format_type]
-            results = search_func(search_params)
+            if format_type in ['3G', 'ALL']:
+                results.extend(self._search_3g(search_params))
             
-            # ترتيب النتائج حسب مستوى التطابق
-            sorted_results = self._sort_results_by_relevance(results, search_params)
+            if format_type in ['4G', 'ALL']:
+                results.extend(self._search_4g(search_params))
+            
+            if format_type in ['Z', 'ALL']:
+                results.extend(self._search_z(search_params))
+            
+            # ترتيب النتائج حسب الثقة
+            results.sort(key=lambda x: x['match_confidence'], reverse=True)
             
             return {
                 'success': True,
-                'results': sorted_results,
-                'total_found': len(sorted_results),
+                'results': results[:50],  # حد أقصى 50 نتيجة
+                'total_found': len(results),
                 'search_info': {
                     'format_type': format_type,
-                    'search_params': search_params,
-                    'technologies_searched': self._get_searched_technologies(format_type)
+                    'search_params': search_params
                 }
             }
             
@@ -88,127 +56,349 @@ class UnifiedSiteSearchService:
                 'results': [],
                 'total_found': 0
             }
-    
-    def _search_2g_sites(self, params: Dict) -> List[Dict]:
+
+    def _search_2g(self, params: Dict) -> List[Dict]:
         """البحث في أبراج 2G"""
-        queryset = TwoGSiteInformation.objects.all()
         results = []
         
-        site_id = params.get('site_id', '').strip()
-        sector = params.get('sector', '').strip()
-        site_name = params.get('site_name', '').strip()
-        city = params.get('city', '').strip()
+        # استخراج معاملات البحث
+        site_id, sector, site_name, cell_name, cell_id = self._extract_params(params)
         
-        # بناء الاستعلام
-        if site_id:
-            queryset = queryset.filter(site_id__icontains=site_id)
+        # البحث بـ Cell ID أولاً
+        if cell_id:
+            sites = TwoGSiteInformation.objects.filter(cell_id=cell_id)
+            for site in sites:
+                results.append(self._format_2g_result(site, 'direct_cell_id', 1.0))
+            if results:
+                return results
         
-        if site_name:
-            queryset = queryset.filter(full_site_name__icontains=site_name)
-        
+        # البحث المرحلي
         if cell_name:
-            queryset = queryset.filter(cell_name__icontains=cell_name)
+            # استخراج Site ID + Sector من Cell Name
+            extracted = self._extract_2g_info(cell_name)
+            if extracted:
+                site_id = extracted.get('site_id', site_id)
+                sector = extracted.get('sector', sector)
         
-        if city:
-            queryset = queryset.filter(geo_city__icontains=city)
+        # حساب Cell ID إذا توفر Site + Sector
+        if site_id and sector:
+            calculated_cell_id = self._calculate_2g_cell_id(site_id, sector)
+            if calculated_cell_id:
+                sites = TwoGSiteInformation.objects.filter(cell_id=calculated_cell_id)
+                for site in sites:
+                    results.append(self._format_2g_result(site, 'calculated', 0.9))
         
-        # البحث بـ Sector للـ 4G
-        if sector and site_id:
-            # حساب Cell ID المتوقع للـ 4G
+        # البحث العام
+        if not results and (site_id or site_name):
+            queryset = TwoGSiteInformation.objects.all()
+            
+            if site_id:
+                queryset = queryset.filter(site_id__icontains=site_id)
+            if site_name:
+                queryset = queryset.filter(site_name__icontains=site_name)
+            
+            for site in queryset[:20]:
+                results.append(self._format_2g_result(site, 'general', 0.6))
+        
+        return results
+
+    def _search_3g(self, params: Dict) -> List[Dict]:
+        """البحث في أبراج 3G"""
+        results = []
+        
+        # استخراج معاملات البحث
+        site_id, sector, site_name, cell_name, cell_id = self._extract_params(params)
+        
+        # البحث بـ Cell ID أولاً (أعلى ثقة)
+        if cell_id:
+            sites = ThreeGSiteInformation.objects.filter(cell_id=cell_id)
+            for site in sites:
+                results.append(self._format_3g_result(site, 'direct_cell_id', 1.0))
+            if results:
+                return results
+        
+        # البحث بـ Cell Name
+        if cell_name:
+            # البحث المباشر
+            sites = ThreeGSiteInformation.objects.filter(cell_name__iexact=cell_name)
+            for site in sites:
+                results.append(self._format_3g_result(site, 'exact_cell_name', 1.0))
+            
+            # إذا لم يجد، استخرج Site ID + Sector
+            if not results:
+                extracted = self._extract_3g_info(cell_name)
+                if extracted:
+                    site_id = extracted.get('site_id', site_id)
+                    sector = extracted.get('sector', sector)
+        
+        # البحث بـ Site + Sector
+        if not results and site_id and sector:
+            # الحساب الذكي للسكتر
+            calculated_cell_id = self._calculate_3g_cell_id(site_id, sector)
+            if calculated_cell_id:
+                sites = ThreeGSiteInformation.objects.filter(cell_id=calculated_cell_id)
+                for site in sites:
+                    results.append(self._format_3g_result(site, 'calculated', 0.9))
+            
+            # البحث بالنمط إذا لم يجد الحساب
+            if not results:
+                sites = ThreeGSiteInformation.objects.filter(
+                    site_id__icontains=site_id,
+                    cell_name__icontains=f'-{sector}'
+                )
+                for site in sites:
+                    results.append(self._format_3g_result(site, 'pattern_match', 0.8))
+        
+        # البحث العام بـ Site ID
+        if not results and site_id:
+            sites = ThreeGSiteInformation.objects.filter(site_id__icontains=site_id)
+            for site in sites[:20]:
+                results.append(self._format_3g_result(site, 'site_fallback', 0.7))
+        
+        # البحث بـ Site Name
+        if not results and site_name:
+            sites = ThreeGSiteInformation.objects.filter(full_site_name__icontains=site_name)
+            for site in sites[:20]:
+                results.append(self._format_3g_result(site, 'name_search', 0.6))
+        
+        return results
+
+    def _search_4g(self, params: Dict) -> List[Dict]:
+        """البحث في أبراج 4G"""
+        results = []
+        
+        # استخراج معاملات البحث
+        site_id, sector, site_name, cell_name, cell_id = self._extract_params(params)
+        
+        # البحث بـ Cell ID أولاً
+        if cell_id:
+            sites = FourGSiteInformation.objects.filter(
+                Q(cell_id=cell_id) |
+                Q(cell_id__endswith=cell_id)  # تجاهل رقم المحافظة
+            )
+            for site in sites:
+                results.append(self._format_4g_result(site, 'direct_cell_id', 1.0))
+            if results:
+                return results
+        
+        # البحث بـ Cell Name
+        if cell_name:
+            sites = FourGSiteInformation.objects.filter(cell_name__iexact=cell_name)
+            for site in sites:
+                results.append(self._format_4g_result(site, 'exact_cell_name', 1.0))
+            
+            # استخراج Site ID + Sector
+            if not results:
+                extracted = self._extract_4g_info(cell_name)
+                if extracted:
+                    site_id = extracted.get('site_id', site_id)
+                    sector = extracted.get('sector', sector)
+        
+        # الحساب الرياضي للـ 4G
+        if not results and site_id and sector:
             calculated_cell_id = self._calculate_4g_cell_id(site_id, sector)
             if calculated_cell_id:
-                queryset = queryset.filter(cell_id=calculated_cell_id)
-            
-            # أو البحث في اسم الخلية
-            sector_patterns = [
-                f"-{sector}",   # مثل L_zawayah_ANB0001-1
-                f"_{sector}"    # أنماط أخرى
-            ]
-            
-            sector_q = Q()
-            for pattern in sector_patterns:
-                sector_q |= Q(cell_name__icontains=pattern)
-            
-            queryset = queryset.filter(sector_q)
+                sites = FourGSiteInformation.objects.filter(
+                    Q(cell_id=calculated_cell_id) |
+                    Q(cell_id__endswith=calculated_cell_id)  # تجاهل رقم المحافظة
+                )
+                for site in sites:
+                    results.append(self._format_4g_result(site, 'calculated', 0.9))
         
-        # تحويل النتائج
-        for site in queryset[:50]:
-            result = self._format_4g_result(site, params)
-            results.append(result)
+        # البحث العام
+        if not results and (site_id or site_name):
+            queryset = FourGSiteInformation.objects.all()
+            
+            if site_id:
+                queryset = queryset.filter(site_id__icontains=site_id)
+            if site_name:
+                queryset = queryset.filter(full_site_name__icontains=site_name)
+            
+            for site in queryset[:20]:
+                results.append(self._format_4g_result(site, 'general', 0.6))
         
         return results
-    
-    def _search_z_sites(self, params: Dict) -> List[Dict]:
+
+    def _search_z(self, params: Dict) -> List[Dict]:
         """البحث في أبراج Z Format"""
-        queryset = SiteInformation.objects.all()
         results = []
         
-        site_id = params.get('site_id', '').strip()
-        site_name = params.get('site_name', '').strip()
-        city = params.get('city', '').strip()
-        
-        # بناء الاستعلام
-        if site_id:
-            # البحث في site_enb_id و lac_cell_id_ecgi
-            queryset = queryset.filter(
-                Q(site_enb_id__icontains=site_id) |
-                Q(lac_cell_id_ecgi__icontains=site_id)
-            )
-        
-        if site_name:
-            queryset = queryset.filter(site_name__icontains=site_name)
-        
-        if city:
-            queryset = queryset.filter(governorate__icontains=city)
-        
-        # تحويل النتائج
-        for site in queryset[:50]:
-            result = self._format_z_result(site, params)
-            results.append(result)
+        # استخدام النظام الموجود للـ Z Format
+        try:
+            from .site_service import SiteService
+            
+            site_id = params.get('site_id', '').strip()
+            if site_id:
+                site_info_dict = SiteService.get_site_info_dict()
+                site_data, match_type = SiteService.find_site_info(site_id, site_info_dict)
+                
+                if site_data and match_type != "no_match":
+                    sites = SiteInformation.objects.filter(
+                        Q(site_enb_id__icontains=site_id) |
+                        Q(lac_cell_id_ecgi__icontains=site_id)
+                    )
+                    
+                    confidence_map = {
+                        'full_match': 1.0,
+                        'zero_padded_match': 0.9,
+                        '5_digit_match': 0.8,
+                        '4_digit_match': 0.7
+                    }
+                    
+                    for site in sites:
+                        confidence = confidence_map.get(match_type, 0.5)
+                        results.append(self._format_z_result(site, match_type, confidence))
+            
+            # البحث العام إذا لم يجد نتائج
+            if not results:
+                site_name = params.get('site_name', '').strip()
+                queryset = SiteInformation.objects.all()
+                
+                if site_id:
+                    queryset = queryset.filter(
+                        Q(site_enb_id__icontains=site_id) |
+                        Q(lac_cell_id_ecgi__icontains=site_id)
+                    )
+                if site_name:
+                    queryset = queryset.filter(site_name__icontains=site_name)
+                
+                for site in queryset[:20]:
+                    results.append(self._format_z_result(site, 'general', 0.6))
+                    
+        except ImportError:
+            logger.warning("site_service غير متوفر للـ Z Format")
         
         return results
-    
-    def _search_all_sites(self, params: Dict) -> List[Dict]:
-        """البحث في جميع أنواع الأبراج"""
-        all_results = []
+
+    # Helper Methods - مبسطة
+    def _extract_params(self, params: Dict) -> tuple:
+        """استخراج المعاملات الأساسية مع دعم cell_id"""
+        return (
+            params.get('site_id', '').strip(),
+            params.get('sector', '').strip(),
+            params.get('site_name', '').strip(),
+            params.get('cell_name', '').strip(),
+            params.get('cell_id', '').strip()
+        )
+
+    def _extract_2g_info(self, cell_name: str) -> Optional[Dict]:
+        """استخراج معلومات 2G من Cell Name"""
+        # نمط: Raniyah7_0810-3
+        match = re.search(r'([A-Za-z0-9_]+)_(\d+)-(\d+)', cell_name)
+        if match:
+            return {
+                'site_name': match.group(1),
+                'site_id': match.group(2),
+                'sector': match.group(3)
+            }
+        return None
+
+    def _extract_3g_info(self, cell_name: str) -> Optional[Dict]:
+        """استخراج معلومات 3G من Cell Name"""
+        # نمط 1: U9_IshikUniversity_SUL3874-B1
+        match1 = re.search(r'U9?_([A-Za-z0-9_]+)_([A-Za-z0-9]+)-([A-Za-z0-9]+)', cell_name)
+        if match1:
+            return {
+                'site_name': match1.group(1),
+                'site_id': match1.group(2),
+                'sector': match1.group(3)
+            }
         
-        # البحث في كل نوع
-        for tech in ['2G', '3G', '4G', 'Z']:
-            tech_results = self.search_strategies[tech](params)
-            all_results.extend(tech_results)
-        
-        return all_results
-    
+        # نمط 2: U_Kanyaw_SUL3874-B2
+        match2 = re.search(r'U_([A-Za-z0-9_]+)_([A-Za-z0-9]+)-([A-Za-z0-9]+)', cell_name)
+        if match2:
+            return {
+                'site_name': match2.group(1),
+                'site_id': match2.group(2),
+                'sector': match2.group(3)
+            }
+        return None
+
+    def _extract_4g_info(self, cell_name: str) -> Optional[Dict]:
+        """استخراج معلومات 4G من Cell Name"""
+        # نمط: L_NewAlwa_SUL0499-4
+        match = re.search(r'L_([A-Za-z0-9_]+)_([A-Za-z0-9]+)-(\d+)', cell_name)
+        if match:
+            return {
+                'site_name': match.group(1),
+                'site_id': match.group(2),
+                'sector': match.group(3)
+            }
+        return None
+
+    # Calculation Methods - مبسطة
     def _calculate_2g_cell_id(self, site_id: str, sector: str) -> Optional[str]:
-        """حساب Cell ID للـ 2G"""
-        try:
-            # استخراج الأرقام من Site ID
-            site_numbers = re.findall(r'\d+', site_id)
-            if not site_numbers:
-                return None
+        """حساب Cell ID للـ 2G: حذف الأصفار الأولى + إضافة السكتر"""
+        site_numbers = re.findall(r'\d+', site_id)
+        if site_numbers:
+            clean_site = site_numbers[-1].lstrip('0') or '0'
+            return f"{clean_site}{sector}"
+        return None
+
+    def _calculate_3g_cell_id(self, site_id: str, sector: str) -> Optional[str]:
+        """
+        حساب Cell ID للـ 3G مع دعم السكتورات الموسعة
+        A1=1, B1=2, C1=3, A2=4, B2=5, C2=6, D1=7, D2=8, E1=9, E2=10, etc.
+        """
+        site_numbers = re.findall(r'\d+', site_id)
+        if site_numbers:
+            base_number = site_numbers[-1]
+            if len(base_number) > 4:
+                base_number = base_number[-4:]
             
-            site_number = site_numbers[-1]  # آخر رقم
-            return f"{site_number}{sector}"
+            # خريطة السكتورات الموسعة
+            sector_map = {
+                'A1': '1', 'B1': '2', 'C1': '3', 'D1': '7', 'E1': '9', 'F1': '11',
+                'A2': '4', 'B2': '5', 'C2': '6', 'D2': '8', 'E2': '10', 'F2': '12'
+            }
             
-        except Exception:
-            return None
-    
+            sector_digit = sector_map.get(sector.upper())
+            
+            # إذا لم يجد في الخريطة، حاول حساب ديناميكي
+            if not sector_digit:
+                letter_match = re.match(r'([A-F])(\d+)', sector.upper())
+                if letter_match:
+                    letter = letter_match.group(1)
+                    number = int(letter_match.group(2))
+                    
+                    # حساب بسيط: A=1, B=2, C=3, D=7, E=9, F=11 للرقم 1
+                    # A=4, B=5, C=6, D=8, E=10, F=12 للرقم 2
+                    base_values = {'A': 1, 'B': 2, 'C': 3, 'D': 7, 'E': 9, 'F': 11}
+                    if letter in base_values:
+                        if number == 1:
+                            sector_digit = str(base_values[letter])
+                        else:  # number == 2
+                            if letter in ['A', 'B', 'C']:
+                                sector_digit = str(base_values[letter] + 3)
+                            else:
+                                sector_digit = str(base_values[letter] + 1)
+            
+            if sector_digit:
+                result = f"{base_number}{sector_digit}"
+                logger.info(f"3G حساب: {site_id} + {sector} = {result}")
+                return result
+                
+        return None
+
     def _calculate_4g_cell_id(self, site_id: str, sector: str) -> Optional[str]:
-        """حساب Cell ID للـ 4G"""
-        try:
-            # استخراج الأرقام من Site ID
-            site_numbers = re.findall(r'\d+', site_id)
-            if not site_numbers:
-                return None
+        """حساب Cell ID للـ 4G: حفظ الأصفار + padding للسكتر"""
+        site_numbers = re.findall(r'\d+', site_id)
+        if site_numbers:
+            clean_site = site_numbers[-1]
+            if len(clean_site) < 4:
+                clean_site = clean_site.zfill(4)
+            elif len(clean_site) > 4:
+                clean_site = clean_site[-4:]
             
-            site_number = site_numbers[-1].zfill(4)  # آخر رقم مع إضافة أصفار
-            sector_padded = sector.zfill(3)  # السكتر مع أصفار
-            return f"{site_number}{sector_padded}"
-            
-        except Exception:
-            return None
-    
-    def _format_2g_result(self, site: TwoGSiteInformation, params: Dict) -> Dict:
+            try:
+                sector_padded = f"{int(sector):03d}"
+                return f"{clean_site}{sector_padded}"
+            except ValueError:
+                pass
+        return None
+
+    # Format Methods - مبسطة
+    def _format_2g_result(self, site: TwoGSiteInformation, match_type: str, confidence: float) -> Dict:
         """تنسيق نتائج 2G"""
         return {
             'id': site.id,
@@ -218,27 +408,20 @@ class UnifiedSiteSearchService:
             'site_name': site.site_name,
             'cell_name': f"2G_{site.site_name}_{site.site_id}-{site.cell_id}",
             'city': site.geo_city,
-            'coordinates': {
-                'latitude': float(site.latitude),
-                'longitude': float(site.longitude)
-            },
+            'coordinates': {'latitude': float(site.latitude), 'longitude': float(site.longitude)},
             'technical_info': {
                 'bsc': site.bsc,
                 'lac': site.lac,
-                'mcc': site.mcc,
-                'mnc': site.mnc,
                 'azimuth': float(site.azimuth) if site.azimuth else None,
-                'mechanical_tilt': float(site.mechanical_tilt) if site.mechanical_tilt else None,
-                'electrical_tilt': float(site.electrical_tilt) if site.electrical_tilt else None,
-                'antenna_height': float(site.antenna_height) if site.antenna_height else None,
-                'antenna_beam_width': float(site.antenna_beam_width) if site.antenna_beam_width else None
+                'antenna_height': float(site.antenna_height) if site.antenna_height else None
             },
-            'match_confidence': self._calculate_match_confidence(site, params, '2G'),
+            'match_type': match_type,
+            'match_confidence': confidence,
             'created_at': site.created_at.isoformat() if site.created_at else None
         }
-    
-    def _format_3g_result(self, site: ThreeGSiteInformation, params: Dict) -> Dict:
-        """تنسيق نتائج 3G - محدث"""
+
+    def _format_3g_result(self, site: ThreeGSiteInformation, match_type: str, confidence: float) -> Dict:
+        """تنسيق نتائج 3G"""
         return {
             'id': site.id,
             'technology': '3G',
@@ -247,25 +430,19 @@ class UnifiedSiteSearchService:
             'site_name': site.full_site_name,
             'cell_name': site.cell_name,
             'city': site.geo_city,
-            'coordinates': {
-                'latitude': float(site.latitude),
-                'longitude': float(site.longitude)
-            },
+            'coordinates': {'latitude': float(site.latitude), 'longitude': float(site.longitude)},
             'technical_info': {
-                'rnc': site.rnc,  # تم تغييره إلى rnc
+                'rnc': site.rnc,
                 'lac': site.lac,
                 'azimuth': float(site.azimuth) if site.azimuth else None,
-                'mechanical_tilt': float(site.mechanical_tilt) if site.mechanical_tilt else None,
-                'electrical_tilt': float(site.electrical_tilt) if site.electrical_tilt else None,
                 'antenna_height': float(site.antenna_height) if site.antenna_height else None
             },
-            'match_type': params.get('match_type', 'unknown'),
-            'created_at': site.created_at.isoformat() if site.created_at else None,
-            'updated_at': site.updated_at.isoformat() if site.updated_at else None
+            'match_type': match_type,
+            'match_confidence': confidence,
+            'created_at': site.created_at.isoformat() if site.created_at else None
         }
-    
-    
-    def _format_4g_result(self, site: FourGSiteInformation, params: Dict) -> Dict:
+
+    def _format_4g_result(self, site: FourGSiteInformation, match_type: str, confidence: float) -> Dict:
         """تنسيق نتائج 4G"""
         return {
             'id': site.id,
@@ -275,22 +452,19 @@ class UnifiedSiteSearchService:
             'site_name': site.full_site_name,
             'cell_name': site.cell_name,
             'city': site.geo_city,
-            'coordinates': {
-                'latitude': float(site.rf_plan_latitude),
-                'longitude': float(site.rf_plan_longitude)
-            },
+            'coordinates': {'latitude': float(site.rf_plan_latitude), 'longitude': float(site.rf_plan_longitude)},
             'technical_info': {
                 'province_id': site.province_id,
                 'lac_tac': site.lac_tac,
-                'technology': site.technology,
                 'azimuth': float(site.azimuth) if site.azimuth else None,
                 'antenna_height': float(site.antenna_height) if site.antenna_height else None
             },
-            'match_confidence': self._calculate_match_confidence(site, params, '4G'),
+            'match_type': match_type,
+            'match_confidence': confidence,
             'created_at': site.created_at.isoformat() if site.created_at else None
         }
-    
-    def _format_z_result(self, site: SiteInformation, params: Dict) -> Dict:
+
+    def _format_z_result(self, site: SiteInformation, match_type: str, confidence: float) -> Dict:
         """تنسيق نتائج Z Format"""
         return {
             'id': site.id,
@@ -300,90 +474,83 @@ class UnifiedSiteSearchService:
             'site_name': site.site_name,
             'cell_name': f"Z_{site.site_name}_{site.site_enb_id}",
             'city': site.governorate,
-            'coordinates': {
-                'latitude': float(site.latitude),
-                'longitude': float(site.longitude)
-            },
+            'coordinates': {'latitude': float(site.latitude), 'longitude': float(site.longitude)},
             'technical_info': {
                 'bore': float(site.bore) if site.bore else None,
                 'lac_cell_id_ecgi': site.lac_cell_id_ecgi
             },
-            'match_confidence': self._calculate_match_confidence(site, params, 'Z'),
-            'created_at': None  # Z Format doesn't have created_at
+            'match_type': match_type,
+            'match_confidence': confidence,
+            'created_at': None
         }
-    
-    def _calculate_match_confidence(self, site, params: Dict, technology: str) -> float:
-        """حساب مستوى الثقة في التطابق"""
-        confidence = 0.5  # قيمة أساسية
+
+    # Public Methods
+    def quick_search(self, keyword: str, format_type: str = 'ALL') -> Dict:
+        """بحث سريع مبسط مع تحليل ذكي للأنماط"""
+        if not keyword.strip():
+            return {'success': False, 'error': 'الكلمة المفتاحية مطلوبة', 'results': [], 'total_found': 0}
         
-        site_id = params.get('site_id', '').strip().lower()
-        site_name = params.get('site_name', '').strip().lower()
+        # تحليل ذكي للكلمة المفتاحية
+        search_params = {'format_type': format_type.upper()}
         
-        # زيادة الثقة حسب نوع التطابق
-        if technology == '2G':
-            if site_id and site_id in site.site_id.lower():
-                confidence += 0.3
-            if site_name and site_name in site.site_name.lower():
-                confidence += 0.2
+        # نمط عام: Site-Sector (مثل SUL0499-D2)
+        general_pattern = re.match(r'^([A-Z]{2,4}\d{1,4})-([A-Z]?\d+)$', keyword)
+        if general_pattern:
+            site_id = general_pattern.group(1)
+            sector = general_pattern.group(2)
+            search_params.update({
+                'site_id': site_id,
+                'sector': sector,
+                'cell_name': keyword  # للبحث المباشر أيضاً
+            })
+            logger.info(f"تحليل نمط عام: {keyword} → Site: {site_id}, Sector: {sector}")
         
-        elif technology == '3G':
-            if site_id and site_id in site.site_id.lower():
-                confidence += 0.3
-            if site_name and site_name in site.full_site_name.lower():
-                confidence += 0.2
+        # نمط Cell Name كامل (يحتوي على _ و -)
+        elif '_' in keyword and '-' in keyword:
+            search_params['cell_name'] = keyword
+            # محاولة استخراج Site ID للبحث الاحتياطي
+            extracted = self._extract_any_site_info(keyword)
+            if extracted:
+                search_params.update(extracted)
         
-        elif technology == '4G':
-            if site_id and site_id in site.site_id.lower():
-                confidence += 0.3
-            if site_name and site_name in site.full_site_name.lower():
-                confidence += 0.2
+        # نمط Site ID بسيط
+        elif re.match(r'^[A-Z]{2,4}\d{1,4}$', keyword):
+            search_params['site_id'] = keyword
         
-        elif technology == 'Z':
-            if site_id and (site_id in site.site_enb_id.lower() or site_id in site.lac_cell_id_ecgi.lower()):
-                confidence += 0.3
-            if site_name and site_name in site.site_name.lower():
-                confidence += 0.2
+        # نمط Cell ID رقمي
+        elif re.match(r'^\d{3,7}$', keyword):
+            search_params['cell_id'] = keyword
         
-        return min(confidence, 1.0)  # حد أقصى 1.0
-    
-    def _sort_results_by_relevance(self, results: List[Dict], params: Dict) -> List[Dict]:
-        """ترتيب النتائج حسب الصلة"""
-        return sorted(results, key=lambda x: x['match_confidence'], reverse=True)
-    
-    def _get_searched_technologies(self, format_type: str) -> List[str]:
-        """الحصول على قائمة التقنيات التي تم البحث فيها"""
-        if format_type == 'ALL':
-            return ['2G', '3G', '4G', 'Z_Format']
+        # البحث العام
         else:
-            return [format_type]
-    
-    def get_site_details(self, site_id: int, technology: str) -> Optional[Dict]:
-        """الحصول على تفاصيل برج محدد"""
-        try:
-            if technology == '2G':
-                site = TwoGSiteInformation.objects.get(id=site_id)
-                return self._format_2g_result(site, {})
-            
-            elif technology == '3G':
-                site = ThreeGSiteInformation.objects.get(id=site_id)
-                return self._format_3g_result(site, {})
-            
-            elif technology == '4G':
-                site = FourGSiteInformation.objects.get(id=site_id)
-                return self._format_4g_result(site, {})
-            
-            elif technology in ['Z', 'Z_Format']:
-                site = SiteInformation.objects.get(id=site_id)
-                return self._format_z_result(site, {})
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"خطأ في الحصول على تفاصيل البرج: {str(e)}")
-            return None
-    
+            search_params.update({
+                'site_id': keyword,
+                'site_name': keyword,
+                'cell_name': keyword
+            })
+        
+        return self.search_sites(search_params)
+
+    def _extract_any_site_info(self, keyword: str) -> Optional[Dict]:
+        """استخراج معلومات من أي نمط ممكن"""
+        # جرب جميع طرق الاستخراج
+        for extract_func in [self._extract_3g_info, self._extract_4g_info, self._extract_2g_info]:
+            result = extract_func(keyword)
+            if result:
+                return result
+        
+        # نمط عام بسيط: أي شيء يحتوي على site-sector
+        match = re.search(r'([A-Z]{2,4}\d{1,4})-([A-Z]?\d+)', keyword)
+        if match:
+            return {
+                'site_id': match.group(1),
+                'sector': match.group(2)
+            }
+        
+        return None
+
     def get_statistics(self) -> Dict:
-        """الحصول على إحصائيات الأبراج"""
+        """إحصائيات بسيطة"""
         try:
             stats = {
                 '2G': TwoGSiteInformation.objects.count(),
@@ -392,105 +559,29 @@ class UnifiedSiteSearchService:
                 'Z_Format': SiteInformation.objects.count()
             }
             
-            total = sum(stats.values())
-            
             return {
                 'success': True,
                 'statistics': stats,
-                'total_sites': total,
-                'databases_status': {
-                    tech: 'active' if count > 0 else 'empty' 
-                    for tech, count in stats.items()
-                }
+                'total_sites': sum(stats.values())
             }
-            
         except Exception as e:
-            logger.error(f"خطأ في الحصول على الإحصائيات: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e),
-                'statistics': {},
-                'total_sites': 0
-            }.filter(site_name__icontains=site_name)
-        
-        if city:
-            queryset = queryset.filter(geo_city__icontains=city)
-        
-        # البحث بـ Sector
-        if sector:
-            # حساب Cell ID المتوقع للـ 2G
-            if site_id:
-                calculated_cell_id = self._calculate_2g_cell_id(site_id, sector)
-                if calculated_cell_id:
-                    queryset = queryset.filter(cell_id=calculated_cell_id)
-        
-        # تحويل النتائج
-        for site in queryset[:50]:  # حد أقصى 50 نتيجة
-            result = self._format_2g_result(site, params)
-            results.append(result)
-        
-        return results
-    
-    def _search_3g_sites(self, params: Dict) -> List[Dict]:
-        """البحث في أبراج 3G"""
-        queryset = ThreeGSiteInformation.objects.all()
-        results = []
-        
-        site_id = params.get('site_id', '').strip()
-        sector = params.get('sector', '').strip()
-        site_name = params.get('site_name', '').strip()
-        cell_name = params.get('cell_name', '').strip()
-        city = params.get('city', '').strip()
-        
-        # بناء الاستعلام
-        if site_id:
-            queryset = queryset.filter(site_id__icontains=site_id)
-        
-        if site_name:
-            queryset = queryset.filter(full_site_name__icontains=site_name)
-        
-        if cell_name:
-            queryset = queryset.filter(cell_name__icontains=cell_name)
-        
-        if city:
-            queryset = queryset.filter(geo_city__icontains=city)
-        
-        # البحث بـ Sector للـ 3G
-        if sector and site_id:
-            # البحث عن الخلايا التي تحتوي على السكتر المطلوب
-            sector_patterns = [
-                f"-A{sector}",  # مثل U9_zawayah_ANB0001-A1
-                f"-{sector}",   # مثل U9_zawayah_ANB0001-1
-                f"_{sector}"    # أنماط أخرى
-            ]
-            
-            sector_q = Q()
-            for pattern in sector_patterns:
-                sector_q |= Q(cell_name__icontains=pattern)
-            
-            queryset = queryset.filter(sector_q)
-        
-        # تحويل النتائج
-        for site in queryset[:50]:
-            result = self._format_3g_result(site, params)
-            results.append(result)
-        
-        return results
-    
-    def _search_4g_sites(self, params: Dict) -> List[Dict]:
-        """البحث في أبراج 4G"""
-        queryset = FourGSiteInformation.objects.all()
-        results = []
-        
-        site_id = params.get('site_id', '').strip()
-        sector = params.get('sector', '').strip()
-        site_name = params.get('site_name', '').strip()
-        cell_name = params.get('cell_name', '').strip()
-        city = params.get('city', '').strip()
-        
-        # بناء الاستعلام
-        if site_id:
-            queryset = queryset.filter(site_id__icontains=site_id)
-        
-        if site_name:
-            queryset = queryset
+            return {'success': False, 'error': str(e), 'statistics': {}, 'total_sites': 0}
+
+    def get_site_details(self, site_id: int, technology: str) -> Optional[Dict]:
+        """الحصول على تفاصيل برج محدد"""
+        try:
+            if technology == '2G':
+                site = TwoGSiteInformation.objects.get(id=site_id)
+                return self._format_2g_result(site, 'direct_access', 1.0)
+            elif technology == '3G':
+                site = ThreeGSiteInformation.objects.get(id=site_id)
+                return self._format_3g_result(site, 'direct_access', 1.0)
+            elif technology == '4G':
+                site = FourGSiteInformation.objects.get(id=site_id)
+                return self._format_4g_result(site, 'direct_access', 1.0)
+            elif technology in ['Z', 'Z_Format']:
+                site = SiteInformation.objects.get(id=site_id)
+                return self._format_z_result(site, 'direct_access', 1.0)
+        except Exception as e:
+            logger.error(f"خطأ في الحصول على تفاصيل البرج: {str(e)}")
+        return None

@@ -12,12 +12,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
   Alert,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Switch,
+  FormControlLabel,
   Table,
   TableBody,
   TableCell,
@@ -26,20 +24,20 @@ import {
   TableRow,
   Paper,
   IconButton,
-  Tooltip,
-  Switch,
-  FormControlLabel,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Divider,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
-  ExpandMore as ExpandMoreIcon,
-  LocationOn as LocationIcon,
-  Settings as SettingsIcon,
-  Info as InfoIcon,
   Map as MapIcon,
+  LocationOn as LocationIcon,
   CellTower as TowerIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 
@@ -63,6 +61,10 @@ const SiteSearchComponent = () => {
   // State للإعدادات المتقدمة
   const [advancedMode, setAdvancedMode] = useState(false);
   const [quickSearchKeyword, setQuickSearchKeyword] = useState("");
+
+  // State للخريطة
+  const [mapDialogOpen, setMapDialogOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState(null);
 
   // State للإحصائيات
   const [statistics, setStatistics] = useState(null);
@@ -221,6 +223,16 @@ const SiteSearchComponent = () => {
     return "error";
   };
 
+  const handleMapOpen = (site) => {
+    setSelectedSite(site);
+    setMapDialogOpen(true);
+  };
+
+  const handleMapClose = () => {
+    setMapDialogOpen(false);
+    setSelectedSite(null);
+  };
+
   const renderStatisticsCard = () => {
     if (!statistics) return null;
 
@@ -318,7 +330,7 @@ const SiteSearchComponent = () => {
                   value={quickSearchKeyword}
                   onChange={(e) => setQuickSearchKeyword(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && performQuickSearch()}
-                  placeholder="مثال: ANB0001 أو Alzawayah"
+                  placeholder="مثال: SUL3874-B2، U_Kanyaw_SUL3874-B1"
                 />
               </Grid>
               <Grid item xs={12} sm={3}>
@@ -377,7 +389,7 @@ const SiteSearchComponent = () => {
                   label="رقم البرج"
                   value={searchParams.site_id}
                   onChange={(e) => handleInputChange("site_id", e.target.value)}
-                  placeholder="ANB0001"
+                  placeholder="SUL3874"
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={2}>
@@ -387,7 +399,7 @@ const SiteSearchComponent = () => {
                   label="رقم السكتر"
                   value={searchParams.sector}
                   onChange={(e) => handleInputChange("sector", e.target.value)}
-                  placeholder="1"
+                  placeholder="B2"
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={2}>
@@ -399,7 +411,7 @@ const SiteSearchComponent = () => {
                   onChange={(e) =>
                     handleInputChange("site_name", e.target.value)
                   }
-                  placeholder="Alzawayah"
+                  placeholder="Kanyaw"
                 />
               </Grid>
               <Grid item xs={12} sm={6} md={2}>
@@ -446,7 +458,7 @@ const SiteSearchComponent = () => {
                   onChange={(e) =>
                     handleInputChange("cell_name", e.target.value)
                   }
-                  placeholder="U9_zawayah_ANB0001-A1"
+                  placeholder="U_Kanyaw_SUL3874-B1"
                 />
               </Grid>
             </Grid>
@@ -456,7 +468,7 @@ const SiteSearchComponent = () => {
     </Card>
   );
 
-  const renderResults = () => {
+  const renderResultsTable = () => {
     if (!searchResults.length && !loading) return null;
 
     return (
@@ -466,130 +478,145 @@ const SiteSearchComponent = () => {
             <Typography variant="h6">نتائج البحث ({totalFound})</Typography>
           </Box>
 
-          {searchResults.map((site, index) => (
-            <Accordion key={`${site.technology}-${site.id}`} sx={{ mb: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box
-                  sx={{ display: "flex", alignItems: "center", width: "100%" }}
-                >
-                  <Chip
-                    label={site.technology}
-                    size="small"
-                    sx={{
-                      bgcolor: getTechnologyColor(site.technology),
-                      color: "white",
-                      mr: 2,
-                    }}
-                  />
-                  <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                    {site.site_name}
-                  </Typography>
-                  <Chip
-                    label={`${Math.round(site.match_confidence * 100)}%`}
-                    size="small"
-                    color={getConfidenceColor(site.match_confidence)}
-                    sx={{ mr: 2 }}
-                  />
-                  <Typography variant="body2" color="textSecondary">
-                    {site.site_id}
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      معلومات أساسية
-                    </Typography>
-                    <Table size="small">
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>رقم البرج</TableCell>
-                          <TableCell>{site.site_id}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>رقم الخلية</TableCell>
-                          <TableCell>{site.cell_id}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>اسم الخلية</TableCell>
-                          <TableCell>{site.cell_name}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>المدينة</TableCell>
-                          <TableCell>{site.city}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      الإحداثيات والمعلومات التقنية
-                    </Typography>
-                    <Table size="small">
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>خط العرض</TableCell>
-                          <TableCell>{site.coordinates.latitude}</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>خط الطول</TableCell>
-                          <TableCell>{site.coordinates.longitude}</TableCell>
-                        </TableRow>
-                        {site.technical_info.azimuth && (
-                          <TableRow>
-                            <TableCell>الاتجاه</TableCell>
-                            <TableCell>
-                              {site.technical_info.azimuth}°
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {site.technical_info.antenna_height && (
-                          <TableRow>
-                            <TableCell>ارتفاع الهوائي</TableCell>
-                            <TableCell>
-                              {site.technical_info.antenna_height}م
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                      <Button
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>التقنية</TableCell>
+                  <TableCell>رقم البرج</TableCell>
+                  <TableCell>رقم الخلية</TableCell>
+                  <TableCell>اسم البرج</TableCell>
+                  <TableCell>اسم الخلية</TableCell>
+                  <TableCell>المدينة</TableCell>
+                  <TableCell>الإحداثيات</TableCell>
+                  <TableCell>الثقة</TableCell>
+                  <TableCell>العمليات</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {searchResults.map((site, index) => (
+                  <TableRow key={`${site.technology}-${site.id}`}>
+                    <TableCell>
+                      <Chip
+                        label={site.technology}
                         size="small"
-                        variant="outlined"
-                        startIcon={<LocationIcon />}
-                        onClick={() => {
-                          const { latitude, longitude } = site.coordinates;
-                          window.open(
-                            `https://maps.google.com/maps?q=${latitude},${longitude}`,
-                            "_blank"
-                          );
+                        sx={{
+                          bgcolor: getTechnologyColor(site.technology),
+                          color: "white",
                         }}
-                      >
-                        عرض على الخريطة
-                      </Button>
-                      <Button
+                      />
+                    </TableCell>
+                    <TableCell>{site.site_id}</TableCell>
+                    <TableCell>{site.cell_id}</TableCell>
+                    <TableCell>{site.site_name}</TableCell>
+                    <TableCell 
+                      sx={{ 
+                        maxWidth: 200, 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap' 
+                      }}
+                      title={site.cell_name}
+                    >
+                      {site.cell_name}
+                    </TableCell>
+                    <TableCell>{site.city}</TableCell>
+                    <TableCell>
+                      <Box sx={{ fontSize: '0.8rem' }}>
+                        <div>Lat: {site.coordinates.latitude.toFixed(5)}</div>
+                        <div>Lng: {site.coordinates.longitude.toFixed(5)}</div>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={`${Math.round(site.match_confidence * 100)}%`}
                         size="small"
-                        variant="outlined"
-                        startIcon={<InfoIcon />}
-                        onClick={() => {
-                          // يمكن إضافة modal للتفاصيل الكاملة
-                          console.log("تفاصيل كاملة:", site);
-                        }}
-                      >
-                        تفاصيل كاملة
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          ))}
+                        color={getConfidenceColor(site.match_confidence)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleMapOpen(site)}
+                          title="تسقيط على الخريطة"
+                        >
+                          <MapIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          color="secondary"
+                          onClick={() => {
+                            const { latitude, longitude } = site.coordinates;
+                            window.open(
+                              `https://maps.google.com/maps?q=${latitude},${longitude}`,
+                              "_blank"
+                            );
+                          }}
+                          title="فتح في Google Maps"
+                        >
+                          <LocationIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </CardContent>
       </Card>
+    );
+  };
+
+  const renderMapDialog = () => {
+    if (!selectedSite) return null;
+
+    return (
+      <Dialog
+        open={mapDialogOpen}
+        onClose={handleMapClose}
+        maxWidth="lg"
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            height: '80vh',
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography variant="h6">
+              تسقيط البرج: {selectedSite.site_name}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              {selectedSite.site_id} - {selectedSite.technology}
+            </Typography>
+          </Box>
+          <IconButton onClick={handleMapClose}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <SiteMapComponent site={selectedSite} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleMapClose}>إغلاق</Button>
+          <Button 
+            variant="contained" 
+            onClick={() => {
+              const { latitude, longitude } = selectedSite.coordinates;
+              window.open(
+                `https://maps.google.com/maps?q=${latitude},${longitude}`,
+                "_blank"
+              );
+            }}
+          >
+            فتح في Google Maps
+          </Button>
+        </DialogActions>
+      </Dialog>
     );
   };
 
@@ -619,8 +646,152 @@ const SiteSearchComponent = () => {
         </Box>
       )}
 
-      {renderResults()}
+      {renderResultsTable()}
+      {renderMapDialog()}
     </Container>
+  );
+};
+
+// مكون الخريطة المنفصل
+const SiteMapComponent = ({ site }) => {
+  useEffect(() => {
+    if (!site || !window.google) return;
+
+    const { latitude, longitude } = site.coordinates;
+    const azimuth = site.technical_info?.azimuth;
+
+    // إنشاء الخريطة
+    const map = new window.google.maps.Map(document.getElementById('site-map'), {
+      center: { lat: latitude, lng: longitude },
+      zoom: 16,
+      mapTypeId: 'satellite', // satellite view
+      tilt: 0
+    });
+
+    // إضافة marker للبرج
+    const marker = new window.google.maps.Marker({
+      position: { lat: latitude, lng: longitude },
+      map: map,
+      title: `${site.site_name} (${site.site_id})`,
+      icon: {
+        url: 'data:image/svg+xml;base64,' + btoa(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${getTechnologyColor(site.technology)}">
+            <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48zm3.69-3.3L8 8.69l1.15 1.96zm3.68-3.3L12 5.35l1.17 2zm3.68 3.3L16 8.69l1.15 1.96zm3.69 3.3L20 11.47l.85 1.48z"/>
+          </svg>
+        `),
+        scaledSize: new window.google.maps.Size(32, 32),
+        anchor: new window.google.maps.Point(16, 16)
+      }
+    });
+
+    // إضافة معلومات البرج
+    const infoWindow = new window.google.maps.InfoWindow({
+      content: `
+        <div style="font-family: Arial; font-size: 12px; max-width: 300px;">
+          <h3 style="margin: 0 0 10px 0; color: ${getTechnologyColor(site.technology)};">
+            ${site.site_name}
+          </h3>
+          <p><strong>رقم البرج:</strong> ${site.site_id}</p>
+          <p><strong>رقم الخلية:</strong> ${site.cell_id}</p>
+          <p><strong>التقنية:</strong> ${site.technology}</p>
+          <p><strong>المدينة:</strong> ${site.city}</p>
+          <p><strong>الإحداثيات:</strong> ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>
+          ${azimuth ? `<p><strong>الاتجاه:</strong> ${azimuth}°</p>` : ''}
+          ${site.technical_info?.antenna_height ? `<p><strong>ارتفاع الهوائي:</strong> ${site.technical_info.antenna_height}م</p>` : ''}
+        </div>
+      `
+    });
+
+    marker.addListener('click', () => {
+      infoWindow.open(map, marker);
+    });
+
+    // رسم مثلث التغطية إذا توفر الاتجاه
+    if (azimuth !== null && azimuth !== undefined) {
+      drawCoverageTriangle(map, latitude, longitude, azimuth);
+    }
+
+  }, [site]);
+
+  const drawCoverageTriangle = (map, lat, lng, azimuth) => {
+    const radius = 0.005; // نصف قطر التغطية (تقريبي)
+    
+    // حساب النقاط الثلاث للمثلث
+    const centerPoint = { lat, lng };
+    
+    // الاتجاه الرئيسي
+    const mainDirection = azimuth;
+    
+    // الاتجاهات الجانبية (+60 و -60 درجة)
+    const leftDirection = (azimuth - 60 + 360) % 360;
+    const rightDirection = (azimuth + 60) % 360;
+    
+    // حساب النقاط
+    const mainPoint = calculatePoint(lat, lng, mainDirection, radius);
+    const leftPoint = calculatePoint(lat, lng, leftDirection, radius);
+    const rightPoint = calculatePoint(lat, lng, rightDirection, radius);
+    
+    // رسم المثلث
+    const triangle = new window.google.maps.Polygon({
+      paths: [centerPoint, leftPoint, mainPoint, rightPoint],
+      strokeColor: getTechnologyColor(site.technology),
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: getTechnologyColor(site.technology),
+      fillOpacity: 0.2
+    });
+    
+    triangle.setMap(map);
+    
+    // رسم خط الاتجاه الرئيسي
+    const directionLine = new window.google.maps.Polyline({
+      path: [centerPoint, mainPoint],
+      geodesic: true,
+      strokeColor: getTechnologyColor(site.technology),
+      strokeOpacity: 1.0,
+      strokeWeight: 3
+    });
+    
+    directionLine.setMap(map);
+  };
+
+  const calculatePoint = (lat, lng, bearing, distance) => {
+    const R = 6371e3; // نصف قطر الأرض بالمتر
+    const φ1 = lat * Math.PI / 180;
+    const λ1 = lng * Math.PI / 180;
+    const θ = bearing * Math.PI / 180;
+    
+    const φ2 = Math.asin(Math.sin(φ1) * Math.cos(distance * 1000 / R) +
+                        Math.cos(φ1) * Math.sin(distance * 1000 / R) * Math.cos(θ));
+    const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(distance * 1000 / R) * Math.cos(φ1),
+                              Math.cos(distance * 1000 / R) - Math.sin(φ1) * Math.sin(φ2));
+    
+    return {
+      lat: φ2 * 180 / Math.PI,
+      lng: λ2 * 180 / Math.PI
+    };
+  };
+
+  const getTechnologyColor = (technology) => {
+    const colors = {
+      "2G": "#f44336",
+      "3G": "#ff9800", 
+      "4G": "#4caf50",
+      Z_Format: "#2196f3",
+    };
+    return colors[technology] || "#757575";
+  };
+
+  return (
+    <div
+      id="site-map"
+      style={{
+        width: '100%',
+        height: '500px',
+        border: '1px solid #ddd',
+        borderRadius: '4px'
+      }}
+    />
   );
 };
 
