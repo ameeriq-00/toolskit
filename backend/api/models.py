@@ -46,8 +46,8 @@ class TwoGSiteInformation(models.Model):
 
 
 class ThreeGSiteInformation(models.Model):
-    """معلومات أبراج 3G"""
-    rnc = models.CharField(max_length=100, verbose_name="RNC")
+    """معلومات أبراج 3G - محدث"""
+    rnc = models.CharField(max_length=100, verbose_name="RNC")  # تم تغييره إلى rnc
     site_id = models.CharField(max_length=100, verbose_name="Site ID")  
     cell_id = models.CharField(max_length=100, verbose_name="Cell ID")
     full_site_name = models.CharField(max_length=200, verbose_name="Full Site Name")
@@ -68,10 +68,12 @@ class ThreeGSiteInformation(models.Model):
     class Meta:
         verbose_name = "3G Site Information"
         verbose_name_plural = "3G Sites Information"
-        unique_together = ('site_id', 'cell_id')
+        # تم إزالة unique_together للسماح بالتكرارات
+        db_table = 'api_threegsiteinformation'
 
     def __str__(self):
         return f"3G: {self.full_site_name} ({self.site_id}-{self.cell_id})"
+
 
 
 class FourGSiteInformation(models.Model):
@@ -96,7 +98,7 @@ class FourGSiteInformation(models.Model):
     class Meta:
         verbose_name = "4G Site Information"
         verbose_name_plural = "4G Sites Information"
-        unique_together = ('site_id', 'cell_id')
+        
 
     def __str__(self):
         return f"4G: {self.full_site_name} ({self.site_id}-{self.cell_id})"

@@ -238,7 +238,7 @@ class UnifiedSiteSearchService:
         }
     
     def _format_3g_result(self, site: ThreeGSiteInformation, params: Dict) -> Dict:
-        """تنسيق نتائج 3G"""
+        """تنسيق نتائج 3G - محدث"""
         return {
             'id': site.id,
             'technology': '3G',
@@ -252,16 +252,18 @@ class UnifiedSiteSearchService:
                 'longitude': float(site.longitude)
             },
             'technical_info': {
-                'rnc': site.rnc,
+                'rnc': site.rnc,  # تم تغييره إلى rnc
                 'lac': site.lac,
                 'azimuth': float(site.azimuth) if site.azimuth else None,
                 'mechanical_tilt': float(site.mechanical_tilt) if site.mechanical_tilt else None,
                 'electrical_tilt': float(site.electrical_tilt) if site.electrical_tilt else None,
                 'antenna_height': float(site.antenna_height) if site.antenna_height else None
             },
-            'match_confidence': self._calculate_match_confidence(site, params, '3G'),
-            'created_at': site.created_at.isoformat() if site.created_at else None
+            'match_type': params.get('match_type', 'unknown'),
+            'created_at': site.created_at.isoformat() if site.created_at else None,
+            'updated_at': site.updated_at.isoformat() if site.updated_at else None
         }
+    
     
     def _format_4g_result(self, site: FourGSiteInformation, params: Dict) -> Dict:
         """تنسيق نتائج 4G"""
