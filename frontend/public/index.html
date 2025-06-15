@@ -1,139 +1,14 @@
-<!-- إضافة هذا إلى public/index.html في React -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Site Management System</title>
-
-    <!-- Google Maps API -->
-    <script
-      async
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=geometry"
-    ></script>
-
-    <style>
-      /* تحسينات CSS للخريطة */
-      .map-container {
-        position: relative;
-        overflow: hidden;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-
-      .map-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 500px;
-        background-color: #f5f5f5;
-        border-radius: 8px;
-      }
-
-      /* تحسين الجدول للعرض على الشاشات الصغيرة */
-      @media (max-width: 768px) {
-        .MuiTableContainer-root {
-          overflow-x: auto;
-        }
-
-        .site-table {
-          min-width: 800px;
-        }
-
-        .cell-name-column {
-          max-width: 150px !important;
-        }
-      }
-
-      /* تحسينات للخريطة */
-      .coverage-info {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 10px;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        font-size: 12px;
-        max-width: 200px;
-      }
-
-      /* أيقونة البرج المخصصة */
-      .tower-icon {
-        width: 24px;
-        height: 24px;
-        fill: currentColor;
-      }
-
-      /* تحسين مظهر الجدول */
-      .results-table .MuiTableCell-head {
-        background-color: #f5f5f5;
-        font-weight: bold;
-      }
-
-      .confidence-chip {
-        min-width: 60px;
-      }
-
-      /* تحسين الحوار */
-      .map-dialog .MuiDialogContent-root {
-        overflow: hidden;
-      }
-    </style>
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Web app with multiple online tools" />
+    <title>Multi-Tool Web App</title>
   </head>
   <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-
-    <!-- ملاحظات للتطوير -->
-    <!-- 
-    تحتاج إلى:
-    1. الحصول على Google Maps API Key من: https://console.cloud.google.com/
-    2. تفعيل Maps JavaScript API و Places API
-    3. استبدال YOUR_GOOGLE_MAPS_API_KEY بالمفتاح الفعلي
-    4. إضافة النطاق المحلي (localhost) في إعدادات API Key
-    -->
-
-    <script>
-      // إعداد Google Maps عند تحميل الصفحة
-      window.initGoogleMaps = function () {
-        console.log("Google Maps API loaded successfully");
-
-        // إعداد افتراضي للخريطة
-        window.defaultMapOptions = {
-          zoom: 16,
-          mapTypeId: "satellite",
-          mapTypeControl: true,
-          streetViewControl: true,
-          fullscreenControl: true,
-          zoomControl: true,
-          gestureHandling: "cooperative",
-        };
-      };
-
-      // التحقق من تحميل Google Maps
-      function checkGoogleMapsLoaded() {
-        if (typeof google !== "undefined" && google.maps) {
-          window.initGoogleMaps();
-          return true;
-        }
-        return false;
-      }
-
-      // انتظار تحميل Google Maps
-      let mapCheckInterval = setInterval(() => {
-        if (checkGoogleMapsLoaded()) {
-          clearInterval(mapCheckInterval);
-        }
-      }, 100);
-
-      // timeout للتعامل مع فشل تحميل Google Maps
-      setTimeout(() => {
-        if (!checkGoogleMapsLoaded()) {
-          console.error("Failed to load Google Maps API");
-          clearInterval(mapCheckInterval);
-        }
-      }, 10000);
-    </script>
   </body>
 </html>

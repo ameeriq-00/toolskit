@@ -38,8 +38,10 @@ import {
   LocationOn as LocationIcon,
   CellTower as TowerIcon,
   Close as CloseIcon,
+  Fullscreen as FullscreenIcon,
 } from "@mui/icons-material";
 import axios from "axios";
+import SiteCoverageMap from "./SiteCoverageMap"; // استيراد مكون الخريطة الجديد
 
 const SiteSearchComponent = () => {
   // State للبحث
@@ -223,6 +225,7 @@ const SiteSearchComponent = () => {
     return "error";
   };
 
+  // فتح الخريطة لموقع واحد
   const handleMapOpen = (site) => {
     setSelectedSite(site);
     setMapDialogOpen(true);
@@ -474,7 +477,14 @@ const SiteSearchComponent = () => {
     return (
       <Card>
         <CardContent>
-          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              mb: 2,
+              justifyContent: "space-between",
+            }}
+          >
             <Typography variant="h6">نتائج البحث ({totalFound})</Typography>
           </Box>
 
@@ -509,12 +519,12 @@ const SiteSearchComponent = () => {
                     <TableCell>{site.site_id}</TableCell>
                     <TableCell>{site.cell_id}</TableCell>
                     <TableCell>{site.site_name}</TableCell>
-                    <TableCell 
-                      sx={{ 
-                        maxWidth: 200, 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap' 
+                    <TableCell
+                      sx={{
+                        maxWidth: 200,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
                       title={site.cell_name}
                     >
@@ -522,7 +532,7 @@ const SiteSearchComponent = () => {
                     </TableCell>
                     <TableCell>{site.city}</TableCell>
                     <TableCell>
-                      <Box sx={{ fontSize: '0.8rem' }}>
+                      <Box sx={{ fontSize: "0.8rem" }}>
                         <div>Lat: {site.coordinates.latitude.toFixed(5)}</div>
                         <div>Lng: {site.coordinates.longitude.toFixed(5)}</div>
                       </Box>
@@ -571,8 +581,6 @@ const SiteSearchComponent = () => {
   };
 
   const renderMapDialog = () => {
-    if (!selectedSite) return null;
-
     return (
       <Dialog
         open={mapDialogOpen}
@@ -580,41 +588,54 @@ const SiteSearchComponent = () => {
         maxWidth="lg"
         fullWidth
         sx={{
-          '& .MuiDialog-paper': {
-            height: '80vh',
+          "& .MuiDialog-paper": {
+            height: "85vh",
+            maxHeight: "85vh",
           },
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <Box>
             <Typography variant="h6">
-              تسقيط البرج: {selectedSite.site_name}
+              تسقيط البرج: {selectedSite?.site_name}
             </Typography>
             <Typography variant="body2" color="textSecondary">
-              {selectedSite.site_id} - {selectedSite.technology}
+              {selectedSite?.site_id} - {selectedSite?.technology}
             </Typography>
           </Box>
           <IconButton onClick={handleMapClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ p: 0, position: 'relative' }}>
-          <SiteMapComponent site={selectedSite} />
+        <DialogContent sx={{ p: 1, position: "relative", overflow: "hidden" }}>
+          <Box sx={{ height: "100%", width: "100%" }}>
+            {selectedSite && (
+              <SiteCoverageMap site={selectedSite} height="70vh" />
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleMapClose}>إغلاق</Button>
-          <Button 
-            variant="contained" 
-            onClick={() => {
-              const { latitude, longitude } = selectedSite.coordinates;
-              window.open(
-                `https://maps.google.com/maps?q=${latitude},${longitude}`,
-                "_blank"
-              );
-            }}
-          >
-            فتح في Google Maps
-          </Button>
+          {selectedSite && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                const { latitude, longitude } = selectedSite.coordinates;
+                window.open(
+                  `https://maps.google.com/maps?q=${latitude},${longitude}`,
+                  "_blank"
+                );
+              }}
+            >
+              فتح في Google Maps
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     );
@@ -649,149 +670,6 @@ const SiteSearchComponent = () => {
       {renderResultsTable()}
       {renderMapDialog()}
     </Container>
-  );
-};
-
-// مكون الخريطة المنفصل
-const SiteMapComponent = ({ site }) => {
-  useEffect(() => {
-    if (!site || !window.google) return;
-
-    const { latitude, longitude } = site.coordinates;
-    const azimuth = site.technical_info?.azimuth;
-
-    // إنشاء الخريطة
-    const map = new window.google.maps.Map(document.getElementById('site-map'), {
-      center: { lat: latitude, lng: longitude },
-      zoom: 16,
-      mapTypeId: 'satellite', // satellite view
-      tilt: 0
-    });
-
-    // إضافة marker للبرج
-    const marker = new window.google.maps.Marker({
-      position: { lat: latitude, lng: longitude },
-      map: map,
-      title: `${site.site_name} (${site.site_id})`,
-      icon: {
-        url: 'data:image/svg+xml;base64,' + btoa(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${getTechnologyColor(site.technology)}">
-            <path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48zm3.69-3.3L8 8.69l1.15 1.96zm3.68-3.3L12 5.35l1.17 2zm3.68 3.3L16 8.69l1.15 1.96zm3.69 3.3L20 11.47l.85 1.48z"/>
-          </svg>
-        `),
-        scaledSize: new window.google.maps.Size(32, 32),
-        anchor: new window.google.maps.Point(16, 16)
-      }
-    });
-
-    // إضافة معلومات البرج
-    const infoWindow = new window.google.maps.InfoWindow({
-      content: `
-        <div style="font-family: Arial; font-size: 12px; max-width: 300px;">
-          <h3 style="margin: 0 0 10px 0; color: ${getTechnologyColor(site.technology)};">
-            ${site.site_name}
-          </h3>
-          <p><strong>رقم البرج:</strong> ${site.site_id}</p>
-          <p><strong>رقم الخلية:</strong> ${site.cell_id}</p>
-          <p><strong>التقنية:</strong> ${site.technology}</p>
-          <p><strong>المدينة:</strong> ${site.city}</p>
-          <p><strong>الإحداثيات:</strong> ${latitude.toFixed(6)}, ${longitude.toFixed(6)}</p>
-          ${azimuth ? `<p><strong>الاتجاه:</strong> ${azimuth}°</p>` : ''}
-          ${site.technical_info?.antenna_height ? `<p><strong>ارتفاع الهوائي:</strong> ${site.technical_info.antenna_height}م</p>` : ''}
-        </div>
-      `
-    });
-
-    marker.addListener('click', () => {
-      infoWindow.open(map, marker);
-    });
-
-    // رسم مثلث التغطية إذا توفر الاتجاه
-    if (azimuth !== null && azimuth !== undefined) {
-      drawCoverageTriangle(map, latitude, longitude, azimuth);
-    }
-
-  }, [site]);
-
-  const drawCoverageTriangle = (map, lat, lng, azimuth) => {
-    const radius = 0.005; // نصف قطر التغطية (تقريبي)
-    
-    // حساب النقاط الثلاث للمثلث
-    const centerPoint = { lat, lng };
-    
-    // الاتجاه الرئيسي
-    const mainDirection = azimuth;
-    
-    // الاتجاهات الجانبية (+60 و -60 درجة)
-    const leftDirection = (azimuth - 60 + 360) % 360;
-    const rightDirection = (azimuth + 60) % 360;
-    
-    // حساب النقاط
-    const mainPoint = calculatePoint(lat, lng, mainDirection, radius);
-    const leftPoint = calculatePoint(lat, lng, leftDirection, radius);
-    const rightPoint = calculatePoint(lat, lng, rightDirection, radius);
-    
-    // رسم المثلث
-    const triangle = new window.google.maps.Polygon({
-      paths: [centerPoint, leftPoint, mainPoint, rightPoint],
-      strokeColor: getTechnologyColor(site.technology),
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: getTechnologyColor(site.technology),
-      fillOpacity: 0.2
-    });
-    
-    triangle.setMap(map);
-    
-    // رسم خط الاتجاه الرئيسي
-    const directionLine = new window.google.maps.Polyline({
-      path: [centerPoint, mainPoint],
-      geodesic: true,
-      strokeColor: getTechnologyColor(site.technology),
-      strokeOpacity: 1.0,
-      strokeWeight: 3
-    });
-    
-    directionLine.setMap(map);
-  };
-
-  const calculatePoint = (lat, lng, bearing, distance) => {
-    const R = 6371e3; // نصف قطر الأرض بالمتر
-    const φ1 = lat * Math.PI / 180;
-    const λ1 = lng * Math.PI / 180;
-    const θ = bearing * Math.PI / 180;
-    
-    const φ2 = Math.asin(Math.sin(φ1) * Math.cos(distance * 1000 / R) +
-                        Math.cos(φ1) * Math.sin(distance * 1000 / R) * Math.cos(θ));
-    const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(distance * 1000 / R) * Math.cos(φ1),
-                              Math.cos(distance * 1000 / R) - Math.sin(φ1) * Math.sin(φ2));
-    
-    return {
-      lat: φ2 * 180 / Math.PI,
-      lng: λ2 * 180 / Math.PI
-    };
-  };
-
-  const getTechnologyColor = (technology) => {
-    const colors = {
-      "2G": "#f44336",
-      "3G": "#ff9800", 
-      "4G": "#4caf50",
-      Z_Format: "#2196f3",
-    };
-    return colors[technology] || "#757575";
-  };
-
-  return (
-    <div
-      id="site-map"
-      style={{
-        width: '100%',
-        height: '500px',
-        border: '1px solid #ddd',
-        borderRadius: '4px'
-      }}
-    />
   );
 };
 
