@@ -12,9 +12,65 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def simplified_site_search(request):
+    """
+    البحث المبسط بالبرج والسكتر فقط
+    
+    Body:
+    {
+        "site_id": "SUL3874",        // مطلوب
+        "sector": "B2",             // اختياري - إذا أردت سكتر محدد
+        "format_type": "ALL"        // اختياري - نوع التقنية
+    }
+    """
+    try:
+        site_id = request.data.get('site_id', '').strip()
+        sector = request.data.get('sector', '').strip() or None
+        format_type = request.data.get('format_type', 'ALL').upper()
+        
+        if not site_id:
+            return Response({
+                "error": "رقم البرج مطلوب"
+            }, status=400)
+        
+        # استخدام الخدمة المبسطة
+        search_service = UnifiedSiteSearchService()
+        result = search_service.simplified_search(site_id, sector, format_type)
+        
+        if result['success']:
+            message = f"تم العثور على {result['total_found']} نتيجة"
+            if sector:
+                message += f" للبرج {site_id} السكتر {sector}"
+            else:
+                message += f" لجميع سكتورات البرج {site_id}"
+                
+            return Response({
+                "success": True,
+                "message": message,
+                "data": result
+            })
+        else:
+            return Response({
+                "success": False,
+                "error": result.get('error', 'لم يتم العثور على نتائج'),
+                "data": {
+                    "results": [],
+                    "total_found": 0
+                }
+            }, status=404)
+    
+    except Exception as e:
+        logger.error(f"خطأ في البحث المبسط: {str(e)}")
+        return Response({
+            "error": f"خطأ في المعالجة: {str(e)}"
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def search_sites(request):
     """
-    البحث عن الأبراج
+    البحث عن الأبراج - الطريقة المتقدمة
     
     Body:
     {

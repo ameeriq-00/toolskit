@@ -1,10 +1,32 @@
 import React from "react";
-import { BrowserRouter as Router } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import AppRoutes from "./Routes";
-import { Container, AppBar, Toolbar, Typography, Button } from "@mui/material";
-import { useAuth } from "./contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { BrowserRouter, useNavigate } from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Container,
+} from "@mui/material";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Routes from "./Routes";
+
+const theme = createTheme({
+  direction: "rtl",
+  typography: {
+    fontFamily: "Arial, sans-serif",
+  },
+  palette: {
+    primary: {
+      main: "#1976d2",
+    },
+    secondary: {
+      main: "#dc004e",
+    },
+  },
+});
 
 const NavigationBar = () => {
   const { user, logout } = useAuth();
@@ -16,69 +38,76 @@ const NavigationBar = () => {
     <AppBar position="static">
       <Toolbar>
         <Typography variant="h6" style={{ flexGrow: 1 }}>
-          Excel Analysis Tools
+          أدوات تحليل Excel والأبراج
         </Typography>
-        <Button color="inherit" onClick={() => navigate("/")}>
-          Home
-        </Button>
-        <Button color="inherit" onClick={() => navigate("/excel-analyzer")}>
-          Excel Analyzer
-        </Button>
-        <Button color="inherit" onClick={() => navigate("/excel-analyzer-z")}>
-          Excel Analyzer Z
-        </Button>
-        <Button color="inherit" onClick={() => navigate("/sheets-comparison")}>
-          مقارنة الشيتات
-        </Button>
 
-        {/* رابط البحث الجديد - متاح للجميع */}
-        <Button color="inherit" onClick={() => navigate("/site-search")}>
-          بحث الأبراج
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button color="inherit" onClick={() => navigate("/")}>
+            الرئيسية
+          </Button>
+          <Button color="inherit" onClick={() => navigate("/excel-analyzer")}>
+            محلل Excel
+          </Button>
+          <Button color="inherit" onClick={() => navigate("/excel-analyzer-z")}>
+            محلل Excel Z
+          </Button>
+          <Button
+            color="inherit"
+            onClick={() => navigate("/sheets-comparison")}
+          >
+            مقارنة الشيتات
+          </Button>
+          <Button color="inherit" onClick={() => navigate("/site-search")}>
+            بحث الأبراج
+          </Button>
 
-        {/* روابط الأدمن */}
-        {user.is_staff && (
-          <>
+          {/* روابط الأدمن */}
+          {user?.is_staff && (
             <Button
               color="inherit"
               onClick={() => navigate("/site-management")}
             >
               إدارة الأبراج
             </Button>
-            {/* الرابط القديم - للتوافق العكسي */}
-            <Button
-              color="inherit"
-              onClick={() => navigate("/upload-site-information")}
-            >
-              Upload Site (Old)
-            </Button>
-          </>
-        )}
+          )}
 
-        <Button
-          color="inherit"
-          onClick={() => {
-            logout();
-            navigate("/login");
-          }}
-        >
-          Logout
-        </Button>
+          <Button
+            color="inherit"
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            sx={{ ml: 2 }}
+          >
+            تسجيل الخروج
+          </Button>
+        </Box>
       </Toolbar>
     </AppBar>
   );
 };
 
+const AppContent = () => {
+  return (
+    <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+      <NavigationBar />
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        <Routes />
+      </Container>
+    </Box>
+  );
+};
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <NavigationBar />
-        <Container>
-          <AppRoutes />
-        </Container>
-      </Router>
-    </AuthProvider>
+    <BrowserRouter>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 }
 

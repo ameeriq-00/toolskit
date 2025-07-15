@@ -30,6 +30,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  RadioGroup,
+  Radio,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -38,14 +40,25 @@ import {
   LocationOn as LocationIcon,
   CellTower as TowerIcon,
   Close as CloseIcon,
-  Fullscreen as FullscreenIcon,
+  InfoIcon,
 } from "@mui/icons-material";
 import axios from "axios";
-import SiteCoverageMap from "./SiteCoverageMap"; // استيراد مكون الخريطة الجديد
+import SiteCoverageMap from "./SiteCoverageMap";
 
 const SiteSearchComponent = () => {
-  // State للبحث
-  const [searchParams, setSearchParams] = useState({
+  // State for search mode
+  const [searchMode, setSearchMode] = useState("simplified");
+
+  // State للبحث المبسط
+  const [simplifiedParams, setSimplifiedParams] = useState({
+    site_id: "",
+    sector: "",
+    format_type: "ALL",
+  });
+  const [showAllSectors, setShowAllSectors] = useState(true);
+
+  // State للبحث المتقدم
+  const [advancedParams, setAdvancedParams] = useState({
     format_type: "ALL",
     site_id: "",
     sector: "",
@@ -53,16 +66,15 @@ const SiteSearchComponent = () => {
     cell_name: "",
     city: "",
   });
+  const [quickSearchKeyword, setQuickSearchKeyword] = useState("");
+  const [advancedMode, setAdvancedMode] = useState(false);
 
   // State للنتائج
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [totalFound, setTotalFound] = useState(0);
-
-  // State للإعدادات المتقدمة
-  const [advancedMode, setAdvancedMode] = useState(false);
-  const [quickSearchKeyword, setQuickSearchKeyword] = useState("");
+  const [searchInfo, setSearchInfo] = useState(null);
 
   // State للخريطة
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
@@ -108,33 +120,80 @@ const SiteSearchComponent = () => {
     }
   };
 
-  const handleInputChange = (field, value) => {
-    setSearchParams((prev) => ({
+  // البحث المبسط
+  const handleSimplifiedInputChange = (field, value) => {
+    setSimplifiedParams((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    if (field === "sector" && value.trim()) {
+      setShowAllSectors(false);
+    } else if (field === "sector" && !value.trim()) {
+      setShowAllSectors(true);
+    }
+  };
+
+  const performSimplifiedSearch = async () => {
+    if (!simplifiedParams.site_id.trim()) {
+      setError("يرجى إدخال رقم البرج");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const searchData = {
+        site_id: simplifiedParams.site_id.trim(),
+        format_type: simplifiedParams.format_type,
+      };
+
+      if (!showAllSectors && simplifiedParams.sector.trim()) {
+        searchData.sector = simplifiedParams.sector.trim();
+      }
+
+      const response = await axios.post(
+        "http://localhost:8000/api/sites/simplified-search/",
+        searchData,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      if (response.data.success) {
+        setSearchResults(response.data.data.results || []);
+        setTotalFound(response.data.data.total_found || 0);
+        setSearchInfo(response.data.data.search_info);
+      } else {
+        setError(response.data.error || "لم يتم العثور على نتائج");
+        setSearchResults([]);
+        setTotalFound(0);
+        setSearchInfo(null);
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || "خطأ في البحث");
+      setSearchResults([]);
+      setTotalFound(0);
+      setSearchInfo(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // البحث المتقدم
+  const handleAdvancedInputChange = (field, value) => {
+    setAdvancedParams((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const clearSearch = () => {
-    setSearchParams({
-      format_type: "ALL",
-      site_id: "",
-      sector: "",
-      site_name: "",
-      cell_name: "",
-      city: "",
-    });
-    setQuickSearchKeyword("");
-    setSearchResults([]);
-    setError("");
-    setTotalFound(0);
-  };
-
-  const performSearch = async () => {
+  const performAdvancedSearch = async () => {
     if (
-      !searchParams.site_id &&
-      !searchParams.site_name &&
-      !searchParams.cell_name
+      !advancedParams.site_id &&
+      !advancedParams.site_name &&
+      !advancedParams.cell_name
     ) {
       setError(
         "يجب إدخال واحد على الأقل من: رقم البرج، اسم البرج، أو اسم الخلية"
@@ -148,7 +207,7 @@ const SiteSearchComponent = () => {
     try {
       const response = await axios.post(
         "http://localhost:8000/api/sites/search/",
-        searchParams,
+        advancedParams,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
@@ -157,15 +216,18 @@ const SiteSearchComponent = () => {
       if (response.data.success) {
         setSearchResults(response.data.data.results || []);
         setTotalFound(response.data.data.total_found || 0);
+        setSearchInfo(response.data.data.search_info);
       } else {
         setError(response.data.error || "لم يتم العثور على نتائج");
         setSearchResults([]);
         setTotalFound(0);
+        setSearchInfo(null);
       }
     } catch (error) {
       setError(error.response?.data?.error || "خطأ في البحث");
       setSearchResults([]);
       setTotalFound(0);
+      setSearchInfo(null);
     } finally {
       setLoading(false);
     }
@@ -185,7 +247,7 @@ const SiteSearchComponent = () => {
         "http://localhost:8000/api/sites/quick-search/",
         {
           keyword: quickSearchKeyword,
-          format_type: searchParams.format_type,
+          format_type: advancedParams.format_type,
         },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -195,18 +257,43 @@ const SiteSearchComponent = () => {
       if (response.data.success) {
         setSearchResults(response.data.data.results || []);
         setTotalFound(response.data.data.total_found || 0);
+        setSearchInfo(response.data.data.search_info);
       } else {
         setError(response.data.error || "لم يتم العثور على نتائج");
         setSearchResults([]);
         setTotalFound(0);
+        setSearchInfo(null);
       }
     } catch (error) {
       setError(error.response?.data?.error || "خطأ في البحث السريع");
       setSearchResults([]);
       setTotalFound(0);
+      setSearchInfo(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearSearch = () => {
+    setSimplifiedParams({
+      site_id: "",
+      sector: "",
+      format_type: "ALL",
+    });
+    setAdvancedParams({
+      format_type: "ALL",
+      site_id: "",
+      sector: "",
+      site_name: "",
+      cell_name: "",
+      city: "",
+    });
+    setQuickSearchKeyword("");
+    setSearchResults([]);
+    setError("");
+    setTotalFound(0);
+    setSearchInfo(null);
+    setShowAllSectors(true);
   };
 
   const getTechnologyColor = (technology) => {
@@ -220,12 +307,11 @@ const SiteSearchComponent = () => {
   };
 
   const getConfidenceColor = (confidence) => {
-    if (confidence >= 0.8) return "success";
-    if (confidence >= 0.6) return "warning";
+    if (confidence >= 0.9) return "success";
+    if (confidence >= 0.8) return "warning";
     return "error";
   };
 
-  // فتح الخريطة لموقع واحد
   const handleMapOpen = (site) => {
     setSelectedSite(site);
     setMapDialogOpen(true);
@@ -277,13 +363,153 @@ const SiteSearchComponent = () => {
     );
   };
 
-  const renderSearchForm = () => (
+  const renderSearchModeSelector = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          اختر نوع البحث
+        </Typography>
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            value={searchMode}
+            onChange={(e) => setSearchMode(e.target.value)}
+          >
+            <FormControlLabel
+              value="simplified"
+              control={<Radio />}
+              label="البحث المبسط (رقم البرج + السكتر)"
+            />
+            <FormControlLabel
+              value="advanced"
+              control={<Radio />}
+              label="البحث المتقدم (خيارات متعددة)"
+            />
+          </RadioGroup>
+        </FormControl>
+      </CardContent>
+    </Card>
+  );
+
+  const renderSimplifiedSearch = () => (
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-          <SearchIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">بحث الأبراج</Typography>
-          <Box sx={{ ml: "auto" }}>
+          <SearchIcon sx={{ mr: 1, color: "primary.main" }} />
+          <Typography variant="h6">بحث مبسط بالبرج والسكتر</Typography>
+        </Box>
+
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            <strong>طريقة البحث:</strong>
+            <br />
+            • أدخل رقم البرج فقط للحصول على جميع السكتورات
+            <br />
+            • أدخل رقم البرج + السكتر للحصول على نتيجة محددة
+            <br />• مثال: SUL3874 أو SUL3874 + B2
+          </Typography>
+        </Alert>
+
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={3}>
+            <TextField
+              fullWidth
+              label="رقم البرج *"
+              value={simplifiedParams.site_id}
+              onChange={(e) =>
+                handleSimplifiedInputChange("site_id", e.target.value)
+              }
+              placeholder="SUL3874, ANB0001, ..."
+              helperText="مطلوب"
+              error={!simplifiedParams.site_id && error}
+              onKeyPress={(e) => e.key === "Enter" && performSimplifiedSearch()}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <TextField
+              fullWidth
+              label="السكتر"
+              value={simplifiedParams.sector}
+              onChange={(e) =>
+                handleSimplifiedInputChange("sector", e.target.value)
+              }
+              placeholder="B2, A1, 1, ..."
+              helperText={showAllSectors ? "جميع السكتورات" : "سكتر محدد"}
+              disabled={showAllSectors}
+              onKeyPress={(e) => e.key === "Enter" && performSimplifiedSearch()}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <FormControl fullWidth>
+              <InputLabel>نوع التقنية</InputLabel>
+              <Select
+                value={simplifiedParams.format_type}
+                onChange={(e) =>
+                  handleSimplifiedInputChange("format_type", e.target.value)
+                }
+                label="نوع التقنية"
+              >
+                <MenuItem value="ALL">جميع التقنيات</MenuItem>
+                <MenuItem value="2G">2G فقط</MenuItem>
+                <MenuItem value="3G">3G فقط</MenuItem>
+                <MenuItem value="4G">4G فقط</MenuItem>
+                <MenuItem value="Z">Z Format فقط</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={3}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showAllSectors}
+                  onChange={(e) => {
+                    setShowAllSectors(e.target.checked);
+                    if (e.target.checked) {
+                      setSimplifiedParams((prev) => ({ ...prev, sector: "" }));
+                    }
+                  }}
+                />
+              }
+              label="جميع السكتورات"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={2}>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={performSimplifiedSearch}
+                disabled={loading || !simplifiedParams.site_id.trim()}
+                startIcon={
+                  loading ? <CircularProgress size={20} /> : <SearchIcon />
+                }
+              >
+                بحث
+              </Button>
+              <IconButton onClick={clearSearch} color="secondary">
+                <ClearIcon />
+              </IconButton>
+            </Box>
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  );
+
+  const renderAdvancedSearch = () => (
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+          <SearchIcon sx={{ mr: 1, color: "primary.main" }} />
+          <Typography variant="h6">البحث المتقدم</Typography>
+        </Box>
+
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12} sm={6}>
             <FormControlLabel
               control={
                 <Switch
@@ -291,33 +517,71 @@ const SiteSearchComponent = () => {
                   onChange={(e) => setAdvancedMode(e.target.checked)}
                 />
               }
-              label="البحث المتقدم"
+              label="البحث المتقدم بالخيارات"
             />
-          </Box>
-        </Box>
+          </Grid>
+        </Grid>
 
         {!advancedMode ? (
-          // البحث السريع
-          <Box>
-            <Typography
-              variant="subtitle2"
-              color="textSecondary"
-              sx={{ mb: 2 }}
-            >
-              بحث سريع بكلمة مفتاحية واحدة
-            </Typography>
-            <Grid container spacing={2} alignItems="center">
+          // بحث سريع
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={4}>
+              <TextField
+                fullWidth
+                label="بحث سريع"
+                value={quickSearchKeyword}
+                onChange={(e) => setQuickSearchKeyword(e.target.value)}
+                placeholder="رقم البرج، اسم البرج، أو اسم الخلية"
+                onKeyPress={(e) => e.key === "Enter" && performQuickSearch()}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth>
+                <InputLabel>نوع التقنية</InputLabel>
+                <Select
+                  value={advancedParams.format_type}
+                  onChange={(e) =>
+                    handleAdvancedInputChange("format_type", e.target.value)
+                  }
+                  label="نوع التقنية"
+                >
+                  <MenuItem value="ALL">جميع التقنيات</MenuItem>
+                  <MenuItem value="2G">2G فقط</MenuItem>
+                  <MenuItem value="3G">3G فقط</MenuItem>
+                  <MenuItem value="4G">4G فقط</MenuItem>
+                  <MenuItem value="Z">Z Format فقط</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={performQuickSearch}
+                disabled={loading || !quickSearchKeyword.trim()}
+                startIcon={
+                  loading ? <CircularProgress size={20} /> : <SearchIcon />
+                }
+              >
+                بحث سريع
+              </Button>
+            </Grid>
+          </Grid>
+        ) : (
+          // بحث متقدم
+          <>
+            <Grid container spacing={2}>
               <Grid item xs={12} sm={3}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>نوع البحث</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel>نوع التقنية</InputLabel>
                   <Select
-                    value={searchParams.format_type}
+                    value={advancedParams.format_type}
                     onChange={(e) =>
-                      handleInputChange("format_type", e.target.value)
+                      handleAdvancedInputChange("format_type", e.target.value)
                     }
-                    label="نوع البحث"
+                    label="نوع التقنية"
                   >
-                    <MenuItem value="ALL">جميع الأنواع</MenuItem>
+                    <MenuItem value="ALL">جميع التقنيات</MenuItem>
                     <MenuItem value="2G">2G فقط</MenuItem>
                     <MenuItem value="3G">3G فقط</MenuItem>
                     <MenuItem value="4G">4G فقط</MenuItem>
@@ -325,107 +589,63 @@ const SiteSearchComponent = () => {
                   </Select>
                 </FormControl>
               </Grid>
+              <Grid item xs={12} sm={3}>
+                <TextField
+                  fullWidth
+                  label="رقم البرج"
+                  value={advancedParams.site_id}
+                  onChange={(e) =>
+                    handleAdvancedInputChange("site_id", e.target.value)
+                  }
+                  placeholder="ANB0001"
+                />
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <TextField
+                  fullWidth
+                  label="السكتر"
+                  value={advancedParams.sector}
+                  onChange={(e) =>
+                    handleAdvancedInputChange("sector", e.target.value)
+                  }
+                  placeholder="1, A1, B2"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  label="اسم البرج"
+                  value={advancedParams.site_name}
+                  onChange={(e) =>
+                    handleAdvancedInputChange("site_name", e.target.value)
+                  }
+                  placeholder="Alzawayah"
+                />
+              </Grid>
+            </Grid>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  size="small"
-                  label="كلمة البحث (رقم البرج، اسم البرج، إلخ)"
-                  value={quickSearchKeyword}
-                  onChange={(e) => setQuickSearchKeyword(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && performQuickSearch()}
-                  placeholder="مثال: SUL3874-B2، U_Kanyaw_SUL3874-B1"
-                />
-              </Grid>
-              <Grid item xs={12} sm={3}>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    onClick={performQuickSearch}
-                    disabled={loading}
-                    startIcon={
-                      loading ? <CircularProgress size={20} /> : <SearchIcon />
-                    }
-                    fullWidth
-                  >
-                    بحث
-                  </Button>
-                  <IconButton onClick={clearSearch} color="secondary">
-                    <ClearIcon />
-                  </IconButton>
-                </Box>
-              </Grid>
-            </Grid>
-          </Box>
-        ) : (
-          // البحث المتقدم
-          <Box>
-            <Typography
-              variant="subtitle2"
-              color="textSecondary"
-              sx={{ mb: 2 }}
-            >
-              بحث متقدم مع خيارات متعددة
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>نوع البحث</InputLabel>
-                  <Select
-                    value={searchParams.format_type}
-                    onChange={(e) =>
-                      handleInputChange("format_type", e.target.value)
-                    }
-                    label="نوع البحث"
-                  >
-                    <MenuItem value="ALL">الكل</MenuItem>
-                    <MenuItem value="2G">2G</MenuItem>
-                    <MenuItem value="3G">3G</MenuItem>
-                    <MenuItem value="4G">4G</MenuItem>
-                    <MenuItem value="Z">Z Format</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="رقم البرج"
-                  value={searchParams.site_id}
-                  onChange={(e) => handleInputChange("site_id", e.target.value)}
-                  placeholder="SUL3874"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="رقم السكتر"
-                  value={searchParams.sector}
-                  onChange={(e) => handleInputChange("sector", e.target.value)}
-                  placeholder="B2"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="اسم البرج"
-                  value={searchParams.site_name}
+                  label="اسم الخلية"
+                  value={advancedParams.cell_name}
                   onChange={(e) =>
-                    handleInputChange("site_name", e.target.value)
+                    handleAdvancedInputChange("cell_name", e.target.value)
                   }
-                  placeholder="Kanyaw"
+                  placeholder="U9_zawayah_ANB0001-A1"
                 />
               </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <FormControl fullWidth size="small">
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth>
                   <InputLabel>المدينة</InputLabel>
                   <Select
-                    value={searchParams.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    value={advancedParams.city}
+                    onChange={(e) =>
+                      handleAdvancedInputChange("city", e.target.value)
+                    }
                     label="المدينة"
                   >
-                    <MenuItem value="">الكل</MenuItem>
+                    <MenuItem value="">جميع المدن</MenuItem>
                     {availableCities.map((city) => (
                       <MenuItem key={city} value={city}>
                         {city}
@@ -434,42 +654,58 @@ const SiteSearchComponent = () => {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6} md={2}>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <Button
-                    variant="contained"
-                    onClick={performSearch}
-                    disabled={loading}
-                    startIcon={
-                      loading ? <CircularProgress size={20} /> : <SearchIcon />
-                    }
-                    fullWidth
-                  >
-                    بحث
-                  </Button>
-                  <IconButton onClick={clearSearch} color="secondary">
-                    <ClearIcon />
-                  </IconButton>
-                </Box>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
+              <Grid item xs={12} sm={2}>
+                <Button
                   fullWidth
-                  size="small"
-                  label="اسم الخلية (اختياري)"
-                  value={searchParams.cell_name}
-                  onChange={(e) =>
-                    handleInputChange("cell_name", e.target.value)
+                  variant="contained"
+                  onClick={performAdvancedSearch}
+                  disabled={loading}
+                  startIcon={
+                    loading ? <CircularProgress size={20} /> : <SearchIcon />
                   }
-                  placeholder="U_Kanyaw_SUL3874-B1"
-                />
+                >
+                  بحث متقدم
+                </Button>
               </Grid>
             </Grid>
-          </Box>
+          </>
         )}
+
+        <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            onClick={clearSearch}
+            color="secondary"
+            startIcon={<ClearIcon />}
+          >
+            مسح جميع الحقول
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   );
+
+  const renderSearchInfo = () => {
+    if (!searchInfo) return null;
+
+    return (
+      <Card sx={{ mb: 2, bgcolor: "primary.light" }}>
+        <CardContent sx={{ py: 2 }}>
+          <Typography variant="body2" color="primary.contrastText">
+            <strong>تم البحث عن:</strong>{" "}
+            {searchInfo.site_id && `رقم البرج: ${searchInfo.site_id}`}
+            {searchInfo.sector && ` - السكتر: ${searchInfo.sector}`}
+            {` - التقنية: ${searchInfo.format_type}`}
+            {searchInfo.search_type &&
+              ` - نوع البحث: ${
+                searchInfo.search_type === "exact_sector"
+                  ? "سكتر محدد"
+                  : "جميع السكتورات"
+              }`}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderResultsTable = () => {
     if (!searchResults.length && !loading) return null;
@@ -486,26 +722,57 @@ const SiteSearchComponent = () => {
             }}
           >
             <Typography variant="h6">نتائج البحث ({totalFound})</Typography>
+            {totalFound > 0 && (
+              <Chip
+                label={`${totalFound} نتيجة`}
+                color="primary"
+                variant="outlined"
+              />
+            )}
           </Box>
 
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell>التقنية</TableCell>
-                  <TableCell>رقم البرج</TableCell>
-                  <TableCell>رقم الخلية</TableCell>
-                  <TableCell>اسم البرج</TableCell>
-                  <TableCell>اسم الخلية</TableCell>
-                  <TableCell>المدينة</TableCell>
-                  <TableCell>الإحداثيات</TableCell>
-                  <TableCell>الثقة</TableCell>
-                  <TableCell>العمليات</TableCell>
+                <TableRow sx={{ backgroundColor: "primary.main" }}>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    التقنية
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    رقم البرج
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    رقم الخلية
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    اسم البرج
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    اسم الخلية
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    المدينة
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    الثقة
+                  </TableCell>
+                  <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                    العمليات
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {searchResults.map((site, index) => (
-                  <TableRow key={`${site.technology}-${site.id}`}>
+                  <TableRow
+                    key={`${site.technology}-${site.id}`}
+                    sx={{
+                      backgroundColor:
+                        index % 2 === 0 ? "action.hover" : "background.paper",
+                      "&:hover": {
+                        backgroundColor: "action.selected",
+                      },
+                    }}
+                  >
                     <TableCell>
                       <Chip
                         label={site.technology}
@@ -513,11 +780,16 @@ const SiteSearchComponent = () => {
                         sx={{
                           bgcolor: getTechnologyColor(site.technology),
                           color: "white",
+                          fontWeight: "bold",
                         }}
                       />
                     </TableCell>
-                    <TableCell>{site.site_id}</TableCell>
-                    <TableCell>{site.cell_id}</TableCell>
+                    <TableCell sx={{ fontWeight: "medium" }}>
+                      {site.site_id}
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: "monospace" }}>
+                      {site.cell_id}
+                    </TableCell>
                     <TableCell>{site.site_name}</TableCell>
                     <TableCell
                       sx={{
@@ -532,16 +804,13 @@ const SiteSearchComponent = () => {
                     </TableCell>
                     <TableCell>{site.city}</TableCell>
                     <TableCell>
-                      <Box sx={{ fontSize: "0.8rem" }}>
-                        <div>Lat: {site.coordinates.latitude.toFixed(5)}</div>
-                        <div>Lng: {site.coordinates.longitude.toFixed(5)}</div>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
                       <Chip
                         label={`${Math.round(site.match_confidence * 100)}%`}
                         size="small"
                         color={getConfidenceColor(site.match_confidence)}
+                        variant={
+                          site.match_confidence >= 0.9 ? "filled" : "outlined"
+                        }
                       />
                     </TableCell>
                     <TableCell>
@@ -549,14 +818,15 @@ const SiteSearchComponent = () => {
                         <IconButton
                           size="small"
                           color="primary"
+                          title="عرض على الخريطة"
                           onClick={() => handleMapOpen(site)}
-                          title="تسقيط على الخريطة"
                         >
                           <MapIcon />
                         </IconButton>
                         <IconButton
                           size="small"
                           color="secondary"
+                          title="فتح في Google Maps"
                           onClick={() => {
                             const { latitude, longitude } = site.coordinates;
                             window.open(
@@ -564,7 +834,6 @@ const SiteSearchComponent = () => {
                               "_blank"
                             );
                           }}
-                          title="فتح في Google Maps"
                         >
                           <LocationIcon />
                         </IconButton>
@@ -575,69 +844,112 @@ const SiteSearchComponent = () => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* ملخص النتائج */}
+          {searchResults.length > 0 && (
+            <Box sx={{ mt: 2, p: 2, bgcolor: "grey.100", borderRadius: 1 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                ملخص النتائج:
+              </Typography>
+              <Grid container spacing={2}>
+                {["2G", "3G", "4G", "Z_Format"].map((tech) => {
+                  const count = searchResults.filter(
+                    (site) => site.technology === tech
+                  ).length;
+                  if (count === 0) return null;
+                  return (
+                    <Grid item key={tech}>
+                      <Chip
+                        label={`${tech}: ${count}`}
+                        size="small"
+                        sx={{
+                          bgcolor: getTechnologyColor(tech),
+                          color: "white",
+                        }}
+                      />
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            </Box>
+          )}
         </CardContent>
       </Card>
     );
   };
 
-  const renderMapDialog = () => {
-    return (
-      <Dialog
-        open={mapDialogOpen}
-        onClose={handleMapClose}
-        maxWidth="lg"
-        fullWidth
-        sx={{
-          "& .MuiDialog-paper": {
-            height: "85vh",
-            maxHeight: "85vh",
-          },
-        }}
-      >
-        <DialogTitle
+  const renderMapDialog = () => (
+    <Dialog
+      open={mapDialogOpen}
+      onClose={handleMapClose}
+      maxWidth="lg"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box
           sx={{
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          <Box>
-            <Typography variant="h6">
-              تسقيط البرج: {selectedSite?.site_name}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {selectedSite?.site_id} - {selectedSite?.technology}
-            </Typography>
-          </Box>
-          <IconButton onClick={handleMapClose}>
+          <Typography variant="h6">
+            موقع البرج: {selectedSite?.site_name}
+          </Typography>
+          <IconButton onClick={handleMapClose} color="inherit">
             <CloseIcon />
           </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 1, position: "relative", overflow: "hidden" }}>
-          <Box sx={{ height: "100%", width: "100%" }}>
-            {selectedSite && (
-              <SiteCoverageMap site={selectedSite} height="70vh" />
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleMapClose}>إغلاق</Button>
-          {selectedSite && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                const { latitude, longitude } = selectedSite.coordinates;
-                window.open(
-                  `https://maps.google.com/maps?q=${latitude},${longitude}`,
-                  "_blank"
-                );
-              }}
-            >
-              فتح في Google Maps
-            </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        {selectedSite && (
+          <>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" color="textSecondary">
+                <strong>التقنية:</strong> {selectedSite.technology} |{" "}
+                <strong>رقم البرج:</strong> {selectedSite.site_id} |{" "}
+                <strong>رقم الخلية:</strong> {selectedSite.cell_id}
+              </Typography>
+            </Box>
+            <SiteCoverageMap sites={[selectedSite]} />
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleMapClose}>إغلاق</Button>
+        <Button
+          onClick={() => {
+            const { latitude, longitude } = selectedSite.coordinates;
+            window.open(
+              `https://maps.google.com/maps?q=${latitude},${longitude}`,
+              "_blank"
+            );
+          }}
+          color="primary"
+        >
+          فتح في Google Maps
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  const renderEmptyState = () => {
+    if (loading || searchResults.length > 0 || error) return null;
+
+    return (
+      <Card sx={{ textAlign: "center", py: 4 }}>
+        <CardContent>
+          <TowerIcon sx={{ fontSize: 48, color: "grey.400", mb: 2 }} />
+          <Typography variant="h6" color="textSecondary" gutterBottom>
+            ابدأ البحث عن الأبراج
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {searchMode === "simplified"
+              ? "أدخل رقم البرج في الحقل أعلاه للبحث في جميع التقنيات"
+              : "استخدم البحث السريع أو البحث المتقدم للعثور على الأبراج"}
+          </Typography>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -653,21 +965,34 @@ const SiteSearchComponent = () => {
       </Typography>
 
       {renderStatisticsCard()}
-      {renderSearchForm()}
+      {renderSearchModeSelector()}
+
+      {/* عرض البحث المبسط أو المتقدم حسب الاختيار */}
+      {searchMode === "simplified"
+        ? renderSimplifiedSearch()
+        : renderAdvancedSearch()}
+
+      {renderSearchInfo()}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          <Typography variant="body2">
+            <strong>خطأ:</strong> {error}
+          </Typography>
         </Alert>
       )}
 
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <CircularProgress />
+          <Typography variant="body2" sx={{ ml: 2, alignSelf: "center" }}>
+            جاري البحث...
+          </Typography>
         </Box>
       )}
 
       {renderResultsTable()}
+      {renderEmptyState()}
       {renderMapDialog()}
     </Container>
   );

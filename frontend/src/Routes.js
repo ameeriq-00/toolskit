@@ -1,21 +1,25 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import Login from "./pages/Login";
+import Home from "./pages/Home";
 import ExcelAnalyzer from "./pages/ExcelAnalyzer";
 import ExcelAnalyzerZ from "./pages/ExcelAnalyzerZ";
 import SheetsComparison from "./pages/SheetsComparison";
-import SiteSearchPage from "./pages/SiteSearchPage"; // جديد
-import SiteManagementPage from "./pages/SiteManagementPage"; // جديد (للأدمن)
-import SiteInformationUpload from "./components/SiteInformationUpload"; // القديم (سنبقيه للتوافق)
-import Login from "./pages/Login";
-import Home from "./pages/Home";
-import Unauthorized from "./pages/Unauthorized";
-import ProtectedRoute from "./components/ProtectedRoute";
+import SiteSearchPage from "./pages/SiteSearchPage";
+import SiteManagementPage from "./pages/SiteManagementPage";
+
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  return user ? children : <Navigate to="/login" />;
+};
 
 const AppRoutes = () => {
+  const { user } = useAuth();
+
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
       <Route
         path="/"
         element={
@@ -48,8 +52,6 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* صفحة البحث الجديدة - متاحة لجميع المستخدمين */}
       <Route
         path="/site-search"
         element={
@@ -58,26 +60,17 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* صفحة إدارة الأبراج الجديدة - للأدمن فقط */}
-      <Route
-        path="/site-management"
-        element={
-          <ProtectedRoute adminOnly={true}>
-            <SiteManagementPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* الصفحة القديمة - محتفظين بها للتوافق العكسي */}
-      <Route
-        path="/upload-site-information"
-        element={
-          <ProtectedRoute adminOnly={true}>
-            <SiteInformationUpload />
-          </ProtectedRoute>
-        }
-      />
+      {user?.is_staff && (
+        <Route
+          path="/site-management"
+          element={
+            <ProtectedRoute>
+              <SiteManagementPage />
+            </ProtectedRoute>
+          }
+        />
+      )}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 };
