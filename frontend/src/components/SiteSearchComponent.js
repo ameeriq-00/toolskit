@@ -29,7 +29,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
   RadioGroup,
   Radio,
 } from "@mui/material";
@@ -40,7 +39,6 @@ import {
   LocationOn as LocationIcon,
   CellTower as TowerIcon,
   Close as CloseIcon,
-  InfoIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 import SiteCoverageMap from "./SiteCoverageMap";
