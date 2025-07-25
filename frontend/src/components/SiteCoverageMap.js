@@ -151,7 +151,7 @@ const SiteCoverageMap = ({ site, height = "500px" }) => {
     }
 
     const popupContent = `
-      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; min-width: 220px;">
+      <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; min-width: 250px;">
         <h4 style="margin: 0 0 10px 0; color: ${techColor}; text-align: center; border-bottom: 2px solid ${techColor}; padding-bottom: 5px;">
           ${site.site_name}
         </h4>
@@ -180,6 +180,11 @@ const SiteCoverageMap = ({ site, height = "500px" }) => {
               ? `<p style="margin: 4px 0;"><strong>درجة الثقة:</strong> ${Math.round(
                   site.match_confidence * 100
                 )}%</p>`
+              : ""
+          }
+          ${
+            site.match_type
+              ? `<p style="margin: 4px 0;"><strong>نوع المطابقة:</strong> ${site.match_type}</p>`
               : ""
           }
         </div>

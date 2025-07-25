@@ -7,9 +7,9 @@ from .views.site_upload_views import (
     upload_z_format_sites, get_upload_statistics
 )
 from .views.site_search_views import (
-    search_sites, get_site_details, get_search_statistics,
-    quick_site_search, advanced_site_search, get_available_cities,
-    simplified_site_search  # البحث المبسط الجديد
+    simplified_site_search, search_sites, get_site_details, 
+    get_search_statistics, quick_site_search, advanced_site_search, 
+    get_available_cities
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -27,16 +27,16 @@ urlpatterns = [
     path('analyze-excel-z/', analysis_views.analyze_excel_z, name='analyze_excel_z'),
     path('compare-sheets/', analysis_views.compare_excel_sheets, name='compare_sheets'),
     
-    # Site Upload endpoints
+    # Site Upload endpoints (existing)
     path('sites/upload/2g/', upload_2g_sites, name='upload_2g_sites'),
     path('sites/upload/3g/', upload_3g_sites, name='upload_3g_sites'),
     path('sites/upload/4g/', upload_4g_sites, name='upload_4g_sites'),
     path('sites/upload/z/', upload_z_format_sites, name='upload_z_sites'),
     path('sites/upload/statistics/', get_upload_statistics, name='upload_statistics'),
     
-    # Site Search endpoints
+    # Site Search endpoints - NEW SYSTEM
+    path('sites/simplified-search/', simplified_site_search, name='simplified_site_search'),
     path('sites/search/', search_sites, name='search_sites'),
-    path('sites/simplified-search/', simplified_site_search, name='simplified_site_search'),  # الجديد
     path('sites/quick-search/', quick_site_search, name='quick_site_search'),
     path('sites/advanced-search/', advanced_site_search, name='advanced_site_search'),
     path('sites/<int:site_id>/<str:technology>/details/', get_site_details, name='get_site_details'),

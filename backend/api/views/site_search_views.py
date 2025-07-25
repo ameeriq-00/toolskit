@@ -14,14 +14,20 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAuthenticated])
 def simplified_site_search(request):
     """
-    البحث المبسط بالبرج والسكتر فقط
+    البحث المبسط الجديد بالبرج والسكتر
     
     Body:
     {
-        "site_id": "SUL3874",        // مطلوب
-        "sector": "B2",             // اختياري - إذا أردت سكتر محدد
-        "format_type": "ALL"        // اختياري - نوع التقنية
+        "site_id": "2199",              // مطلوب - رقم البرج
+        "sector": "A3",                 // اختياري - السكتر
+        "format_type": "ALL"            // اختياري - نوع التقنية
     }
+    
+    أمثلة المدخلات المدعومة:
+    - "2199" (جميع سكتورات البرج 2199)
+    - "21997" (البرج 2199 السكتر 7)
+    - "BAG2199" (البرج 2199 مع الكود)
+    - "2199-A3" (البرج 2199 السكتر A3)
     """
     try:
         site_id = request.data.get('site_id', '').strip()
@@ -30,20 +36,27 @@ def simplified_site_search(request):
         
         if not site_id:
             return Response({
+                "success": False,
                 "error": "رقم البرج مطلوب"
             }, status=400)
         
-        # استخدام الخدمة المبسطة
+        # استخدام الخدمة الجديدة
         search_service = UnifiedSiteSearchService()
         result = search_service.simplified_search(site_id, sector, format_type)
         
         if result['success']:
-            message = f"تم العثور على {result['total_found']} نتيجة"
-            if sector:
-                message += f" للبرج {site_id} السكتر {sector}"
+            total_found = result['total_found']
+            search_info = result['search_info']
+            
+            # إنشاء رسالة وصفية
+            if search_info.get('parsed_sector'):
+                if search_info.get('search_type') == 'exact_sector':
+                    message = f"تم العثور على {total_found} نتيجة للبرج {search_info['parsed_site']} السكتر {search_info['parsed_sector']}"
+                else:
+                    message = f"تم العثور على {total_found} نتيجة للبرج {search_info['parsed_site']}"
             else:
-                message += f" لجميع سكتورات البرج {site_id}"
-                
+                message = f"تم العثور على {total_found} نتيجة لجميع سكتورات البرج {search_info['parsed_site']}"
+            
             return Response({
                 "success": True,
                 "message": message,
@@ -62,6 +75,7 @@ def simplified_site_search(request):
     except Exception as e:
         logger.error(f"خطأ في البحث المبسط: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -70,16 +84,16 @@ def simplified_site_search(request):
 @permission_classes([IsAuthenticated])
 def search_sites(request):
     """
-    البحث عن الأبراج - الطريقة المتقدمة
+    البحث المتقدم في الأبراج
     
     Body:
     {
         "format_type": "2G|3G|4G|Z|ALL",
-        "site_id": "ANB0001",
-        "sector": "1",
-        "site_name": "Alzawayah",
-        "cell_name": "U9_zawayah_ANB0001-A1",
-        "city": "Al-Anbar"
+        "site_id": "2199",
+        "sector": "A3",
+        "site_name": "Salhiya",
+        "cell_name": "U9_Salhiya_BAG2199-A3",
+        "city": "Baghdad"
     }
     """
     try:
@@ -93,6 +107,7 @@ def search_sites(request):
             search_params.get('cell_name')
         ]):
             return Response({
+                "success": False,
                 "error": "يجب إدخال واحد على الأقل من: رقم البرج، اسم البرج، أو اسم الخلية"
             }, status=400)
         
@@ -118,6 +133,7 @@ def search_sites(request):
     except Exception as e:
         logger.error(f"خطأ في بحث الأبراج: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -137,6 +153,7 @@ def get_site_details(request, site_id, technology):
         valid_technologies = ['2G', '3G', '4G', 'Z', 'Z_Format']
         if technology.upper() not in valid_technologies:
             return Response({
+                "success": False,
                 "error": f"نوع التقنية غير صالح. الأنواع المدعومة: {', '.join(valid_technologies)}"
             }, status=400)
         
@@ -159,6 +176,7 @@ def get_site_details(request, site_id, technology):
     except Exception as e:
         logger.error(f"خطأ في الحصول على تفاصيل البرج: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -178,6 +196,7 @@ def get_search_statistics(request):
     except Exception as e:
         logger.error(f"خطأ في الحصول على الإحصائيات: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -190,7 +209,7 @@ def quick_site_search(request):
     
     Body:
     {
-        "keyword": "ANB0001",
+        "keyword": "2199",
         "format_type": "ALL"  // اختياري
     }
     """
@@ -200,10 +219,11 @@ def quick_site_search(request):
         
         if not keyword:
             return Response({
+                "success": False,
                 "error": "الكلمة المفتاحية مطلوبة"
             }, status=400)
         
-        # تحضير معاملات البحث
+        # تحضير معاملات البحث للبحث المتقدم
         search_params = {
             'format_type': format_type,
             'site_id': keyword,
@@ -233,6 +253,7 @@ def quick_site_search(request):
     except Exception as e:
         logger.error(f"خطأ في البحث السريع: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -247,10 +268,10 @@ def advanced_site_search(request):
     {
         "format_type": "ALL",
         "search_criteria": {
-            "site_id": "ANB0001",
-            "sector": "1",
-            "site_name": "Alzawayah",
-            "city": "Al-Anbar"
+            "site_id": "2199",
+            "sector": "A3",
+            "site_name": "Salhiya",
+            "city": "Baghdad"
         },
         "filters": {
             "min_confidence": 0.7,
@@ -320,6 +341,7 @@ def advanced_site_search(request):
     except Exception as e:
         logger.error(f"خطأ في البحث المتقدم: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
 
@@ -354,5 +376,6 @@ def get_available_cities(request):
     except Exception as e:
         logger.error(f"خطأ في الحصول على المدن: {str(e)}")
         return Response({
+            "success": False,
             "error": f"خطأ في المعالجة: {str(e)}"
         }, status=500)
