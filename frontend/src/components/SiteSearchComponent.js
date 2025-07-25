@@ -38,7 +38,6 @@ import {
   LocationOn as LocationIcon,
   CellTower as TowerIcon,
   Close as CloseIcon,
-  Info as InfoIcon,
 } from "@mui/icons-material";
 import axios from "axios";
 import SiteCoverageMap from "./SiteCoverageMap";
