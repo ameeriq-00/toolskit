@@ -1,4 +1,3 @@
-// frontend/src/components/NetworkGraph.js
 import React, { useRef, useEffect, useState } from "react";
 import {
   Paper,
@@ -17,6 +16,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
 } from "@mui/material";
 import {
   Fullscreen as FullscreenIcon,
@@ -27,20 +27,50 @@ import {
   ZoomOut as ZoomOutIcon,
   CenterFocusStrong as CenterIcon,
 } from "@mui/icons-material";
-import cytoscape from "cytoscape";
-import fcose from "cytoscape-fcose";
 
-// تسجيل الإضافة
-cytoscape.use(fcose);
+// Dynamically import cytoscape to avoid SSR issues
+let cytoscape = null;
+let fcose = null;
 
-const NetworkGraphCytoscape = ({ data }) => {
+const NetworkGraph = ({ data }) => {
   const cyRef = useRef();
   const containerRef = useRef();
-
   const [showLabels, setShowLabels] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
   const [fullScreen, setFullScreen] = useState(false);
   const [layoutMode, setLayoutMode] = useState("custom");
+  const [cytoscapeLoaded, setCytoscapeLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Load cytoscape dynamically
+  useEffect(() => {
+    const loadCytoscape = async () => {
+      try {
+        if (!cytoscape) {
+          const cytoscapeModule = await import("cytoscape");
+          cytoscape = cytoscapeModule.default;
+
+          // Try to load fcose layout extension
+          try {
+            const fcoseModule = await import("cytoscape-fcose");
+            fcose = fcoseModule.default;
+            cytoscape.use(fcose);
+          } catch (fcoseError) {
+            console.warn("fcose layout not available, using built-in layouts");
+          }
+        }
+        setCytoscapeLoaded(true);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading cytoscape:", err);
+        setError("فشل في تحميل مكونات الشبكة");
+        setLoading(false);
+      }
+    };
+
+    loadCytoscape();
+  }, []);
 
   // ألوان مختلفة لكل شخص
   const PERSON_COLORS = [
@@ -100,8 +130,10 @@ const NetworkGraphCytoscape = ({ data }) => {
 
   // تخطيط مخصص للعقد
   const createCustomLayout = (cy, owners, contacts) => {
-    const containerWidth = containerRef.current?.offsetWidth || 800;
-    const containerHeight = containerRef.current?.offsetHeight || 600;
+    if (!containerRef.current) return {};
+
+    const containerWidth = containerRef.current.offsetWidth || 800;
+    const containerHeight = containerRef.current.offsetHeight || 600;
 
     // تحديد المواقع للأشخاص (العقد الكبيرة) - على الأطراف
     const positions = {};
@@ -137,192 +169,239 @@ const NetworkGraphCytoscape = ({ data }) => {
     return positions;
   };
 
+  // Clean up cytoscape instance
   useEffect(() => {
-    if (!data || !data.nodes || !data.links || !containerRef.current) return;
+    return () => {
+      if (cyRef.current) {
+        try {
+          cyRef.current.destroy();
+        } catch (err) {
+          console.warn("Error destroying cytoscape instance:", err);
+        }
+        cyRef.current = null;
+      }
+    };
+  }, []);
 
-    // تنظيف الرسم البياني السابق
-    if (cyRef.current) {
-      cyRef.current.destroy();
-    }
-
-    // الحصول على البيانات المفلترة
-    const filteredData = getFilteredData();
-    const owners = filteredData.nodes.filter((n) => n.type === "owner");
-    const contacts = filteredData.nodes.filter((n) => n.type === "contact");
-
-    console.log(
-      `عرض ${owners.length} أشخاص و ${contacts.length} جهات اتصال مشتركة`
-    );
-
-    if (filteredData.nodes.length === 0) {
+  // Initialize cytoscape
+  useEffect(() => {
+    if (
+      !cytoscapeLoaded ||
+      !cytoscape ||
+      !data ||
+      !data.nodes ||
+      !data.links ||
+      !containerRef.current
+    ) {
       return;
     }
 
-    // تحضير العناصر لـ Cytoscape
-    const elements = [
-      // العقد
-      ...filteredData.nodes.map((node, index) => {
-        let nodeColor = "#95e1d3"; // لون افتراضي لجهات الاتصال
+    // Clean up existing instance
+    if (cyRef.current) {
+      try {
+        cyRef.current.destroy();
+      } catch (err) {
+        console.warn("Error destroying previous cytoscape instance:", err);
+      }
+      cyRef.current = null;
+    }
 
-        if (node.type === "owner") {
-          const ownerIndex = owners.findIndex((owner) => owner.id === node.id);
-          nodeColor = getPersonColor(ownerIndex);
-        } else if (node.type === "contact" && node.appearances > 1) {
-          nodeColor = "#4ecdc4"; // لون جهات الاتصال المشتركة
-        }
+    // Clear container
+    if (containerRef.current) {
+      containerRef.current.innerHTML = "";
+    }
 
-        return {
-          data: {
-            id: node.id,
-            label: showLabels ? node.name || node.id : "",
-            type: node.type,
-            size: node.size || 10,
-            appearances: node.appearances,
-            name: node.name,
-            color: nodeColor,
-          },
-        };
-      }),
-      // الروابط
-      ...filteredData.links.map((link, index) => ({
-        data: {
-          id: `edge-${index}`,
-          source: link.source,
-          target: link.target,
-          color: getLinkColor(link, owners),
-        },
-      })),
-    ];
+    try {
+      // الحصول على البيانات المفلترة
+      const filteredData = getFilteredData();
+      const owners = filteredData.nodes.filter((n) => n.type === "owner");
+      const contacts = filteredData.nodes.filter((n) => n.type === "contact");
 
-    // إنشاء الرسم البياني
-    const cy = cytoscape({
-      container: containerRef.current,
-      elements: elements,
-      style: [
-        {
-          selector: "node",
-          style: {
-            width: (node) => {
-              const type = node.data("type");
-              if (type === "owner") return 30; // أكبر للأشخاص
-              if (type === "contact" && node.data("appearances") > 1) return 18;
-              return 12;
-            },
-            height: (node) => {
-              const type = node.data("type");
-              if (type === "owner") return 30; // أكبر للأشخاص
-              if (type === "contact" && node.data("appearances") > 1) return 18;
-              return 12;
-            },
-            "background-color": "data(color)",
-            label: "data(label)",
-            "text-valign": "bottom",
-            "text-halign": "center",
-            "font-size": (node) => {
-              const type = node.data("type");
-              if (type === "owner") return "12px"; // خط أكبر للأشخاص
-              return "10px";
-            },
-            "font-weight": (node) => {
-              const type = node.data("type");
-              if (type === "owner") return "bold"; // خط عريض للأشخاص
-              return "normal";
-            },
-            color: "#333",
-            "text-outline-width": 2,
-            "text-outline-color": "#fff",
-            "border-width": 3,
-            "border-color": "#fff",
-            "box-shadow": "0 4px 8px rgba(0,0,0,0.3)",
-          },
-        },
-        {
-          selector: "edge",
-          style: {
-            width: 2.5,
-            "line-color": "data(color)",
-            "target-arrow-color": "data(color)",
-            "target-arrow-shape": "triangle",
-            "target-arrow-size": "8px",
-            "curve-style": "bezier",
-            opacity: 0.8,
-            "arrow-scale": 1.2,
-          },
-        },
-      ],
-      layout: {
-        name: layoutMode === "custom" ? "preset" : layoutMode,
-        positions: () => {}, // سيتم تعيينه لاحقاً للتخطيط المخصص
-        fit: true,
-        padding: 50,
-        animate: layoutMode !== "custom",
-        animationDuration: layoutMode !== "custom" ? 1000 : 0,
-      },
-      minZoom: 0.2,
-      maxZoom: 4,
-      wheelSensitivity: 0.1,
-      // إلغاء التفاعل مع النقر
-      userPanningEnabled: true,
-      userZoomingEnabled: true,
-      boxSelectionEnabled: false,
-      selectionType: "single",
-      touchTapThreshold: 8,
-      desktopTapThreshold: 4,
-    });
+      console.log(
+        `عرض ${owners.length} أشخاص و ${contacts.length} جهات اتصال مشتركة`
+      );
 
-    cyRef.current = cy;
+      if (filteredData.nodes.length === 0) {
+        setError("لا توجد بيانات شبكة متاحة");
+        return;
+      }
 
-    // تطبيق التخطيط المخصص إذا كان محدداً
-    setTimeout(() => {
-      if (layoutMode === "custom") {
-        const positions = createCustomLayout(cy, owners, contacts);
+      // تحضير العناصر لـ Cytoscape
+      const elements = [
+        // العقد
+        ...filteredData.nodes.map((node, index) => {
+          let nodeColor = "#95e1d3"; // لون افتراضي لجهات الاتصال
 
-        // تحريك العقد إلى مواقعها المخصصة
-        Object.entries(positions).forEach(([nodeId, pos]) => {
-          const node = cy.getElementById(nodeId);
-          if (node.length > 0) {
-            node.position(pos);
+          if (node.type === "owner") {
+            const ownerIndex = owners.findIndex(
+              (owner) => owner.id === node.id
+            );
+            nodeColor = getPersonColor(ownerIndex);
+          } else if (node.type === "contact" && node.appearances > 1) {
+            nodeColor = "#4ecdc4"; // لون جهات الاتصال المشتركة
           }
-        });
 
-        // تحديث العرض
-        cy.fit(cy.elements(), 50);
+          return {
+            data: {
+              id: node.id,
+              label: showLabels ? node.name || node.id : "",
+              type: node.type,
+              size: node.size || 10,
+              appearances: node.appearances,
+              name: node.name,
+              color: nodeColor,
+            },
+          };
+        }),
+        // الروابط
+        ...filteredData.links.map((link, index) => ({
+          data: {
+            id: `edge-${index}`,
+            source: link.source,
+            target: link.target,
+            color: getLinkColor(link, owners),
+          },
+        })),
+      ];
+
+      // إنشاء الرسم البياني
+      const cy = cytoscape({
+        container: containerRef.current,
+        elements: elements,
+        style: [
+          {
+            selector: "node",
+            style: {
+              width: (node) => {
+                const type = node.data("type");
+                if (type === "owner") return 30; // أكبر للأشخاص
+                if (type === "contact" && node.data("appearances") > 1)
+                  return 18;
+                return 12;
+              },
+              height: (node) => {
+                const type = node.data("type");
+                if (type === "owner") return 30; // أكبر للأشخاص
+                if (type === "contact" && node.data("appearances") > 1)
+                  return 18;
+                return 12;
+              },
+              "background-color": "data(color)",
+              label: "data(label)",
+              "text-valign": "bottom",
+              "text-halign": "center",
+              "font-size": (node) => {
+                const type = node.data("type");
+                if (type === "owner") return "12px"; // خط أكبر للأشخاص
+                return "10px";
+              },
+              "font-weight": (node) => {
+                const type = node.data("type");
+                if (type === "owner") return "bold"; // خط عريض للأشخاص
+                return "normal";
+              },
+              color: "#333",
+              "text-outline-width": 2,
+              "text-outline-color": "#fff",
+              "border-width": 3,
+              "border-color": "#fff",
+              "box-shadow": "0 4px 8px rgba(0,0,0,0.3)",
+            },
+          },
+          {
+            selector: "edge",
+            style: {
+              width: 2.5,
+              "line-color": "data(color)",
+              "target-arrow-color": "data(color)",
+              "target-arrow-shape": "triangle",
+              "target-arrow-size": "8px",
+              "curve-style": "bezier",
+              opacity: 0.8,
+              "arrow-scale": 1.2,
+            },
+          },
+        ],
+        layout: {
+          name:
+            layoutMode === "custom"
+              ? "preset"
+              : layoutMode === "fcose" && fcose
+              ? "fcose"
+              : "circle",
+          fit: true,
+          padding: 50,
+          animate: layoutMode !== "custom",
+          animationDuration: layoutMode !== "custom" ? 1000 : 0,
+        },
+        minZoom: 0.2,
+        maxZoom: 4,
+        wheelSensitivity: 0.1,
+        userPanningEnabled: true,
+        userZoomingEnabled: true,
+        boxSelectionEnabled: false,
+        selectionType: "single",
+        touchTapThreshold: 8,
+        desktopTapThreshold: 4,
+      });
+
+      cyRef.current = cy;
+
+      // تطبيق التخطيط المخصص إذا كان محدداً
+      if (layoutMode === "custom") {
+        setTimeout(() => {
+          const positions = createCustomLayout(cy, owners, contacts);
+
+          // تحريك العقد إلى مواقعها المخصصة
+          Object.entries(positions).forEach(([nodeId, pos]) => {
+            const node = cy.getElementById(nodeId);
+            if (node.length > 0) {
+              node.position(pos);
+            }
+          });
+
+          // تحديث العرض
+          setTimeout(() => {
+            if (cy && !cy.destroyed()) {
+              cy.fit(cy.elements(), 50);
+            }
+          }, 100);
+        }, 100);
       }
-    }, 100);
 
-    // إلغاء جميع أحداث النقر والتفاعل
-    cy.removeAllListeners();
+      // إزالة جميع أحداث النقر والتفاعل السابقة
+      cy.removeAllListeners();
 
-    return () => {
-      if (cy) {
-        cy.destroy();
-      }
-    };
-  }, [data, showLabels, layoutMode, fullScreen]);
+      setError(null);
+    } catch (err) {
+      console.error("Error initializing cytoscape:", err);
+      setError("حدث خطأ في إنشاء الشبكة: " + err.message);
+    }
+  }, [cytoscapeLoaded, data, showLabels, layoutMode, fullScreen]);
 
   // وظائف التحكم
   const handleZoomIn = () => {
-    if (cyRef.current) {
+    if (cyRef.current && !cyRef.current.destroyed()) {
       cyRef.current.zoom(cyRef.current.zoom() * 1.25);
       cyRef.current.center();
     }
   };
 
   const handleZoomOut = () => {
-    if (cyRef.current) {
+    if (cyRef.current && !cyRef.current.destroyed()) {
       cyRef.current.zoom(cyRef.current.zoom() * 0.8);
       cyRef.current.center();
     }
   };
 
   const handleCenter = () => {
-    if (cyRef.current) {
+    if (cyRef.current && !cyRef.current.destroyed()) {
       cyRef.current.fit();
     }
   };
 
   const handleRestart = () => {
-    if (cyRef.current) {
+    if (cyRef.current && !cyRef.current.destroyed()) {
       if (layoutMode === "custom") {
         // إعادة تطبيق التخطيط المخصص
         const owners = cyRef.current.nodes('[type="owner"]');
@@ -340,12 +419,18 @@ const NetworkGraphCytoscape = ({ data }) => {
           }
         });
 
-        setTimeout(() => cyRef.current.fit(cyRef.current.elements(), 50), 1100);
+        setTimeout(() => {
+          if (cyRef.current && !cyRef.current.destroyed()) {
+            cyRef.current.fit(cyRef.current.elements(), 50);
+          }
+        }, 1100);
       } else {
         // استخدام التخطيطات الأخرى
+        const layoutName =
+          layoutMode === "fcose" && fcose ? "fcose" : layoutMode;
         cyRef.current
           .layout({
-            name: layoutMode,
+            name: layoutName,
             fit: true,
             animate: true,
             animationDuration: 1000,
@@ -355,9 +440,22 @@ const NetworkGraphCytoscape = ({ data }) => {
     }
   };
 
-  const handleClearSelection = () => {
-    setSelectedNode(null);
-  };
+  if (loading) {
+    return (
+      <Paper sx={{ p: 4, textAlign: "center" }}>
+        <CircularProgress sx={{ mb: 2 }} />
+        <Typography>جاري تحميل مكونات الشبكة...</Typography>
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper sx={{ p: 2 }}>
+        <Alert severity="error">{error}</Alert>
+      </Paper>
+    );
+  }
 
   if (!data || !data.nodes) {
     return (
@@ -391,7 +489,7 @@ const NetworkGraphCytoscape = ({ data }) => {
           <MenuItem value="custom">تخطيط مخصص</MenuItem>
           <MenuItem value="circle">دائري</MenuItem>
           <MenuItem value="grid">شبكي</MenuItem>
-          <MenuItem value="fcose">تلقائي</MenuItem>
+          {fcose && <MenuItem value="fcose">تلقائي</MenuItem>}
         </Select>
       </FormControl>
 
@@ -540,4 +638,4 @@ const NetworkGraphCytoscape = ({ data }) => {
   );
 };
 
-export default NetworkGraphCytoscape;
+export default NetworkGraph;

@@ -44,24 +44,17 @@ export const NAVIGATION_ITEMS = [
         id: "tower-search",
         title: "بحث الأبراج",
         icon: "Search",
-        path: "/tower-search",
+        path: "/site-search",
       },
       {
         id: "tower-management",
         title: "إدارة البيانات",
         icon: "AdminPanelSettings",
-        path: "/tower-management",
+        path: "/site-management",
         roles: ["admin"],
         badge: "ADMIN",
       },
     ],
-  },
-  {
-    id: "maps",
-    title: "الخرائط والمواقع",
-    icon: "Map",
-    path: "/maps",
-    roles: ["user", "admin"],
   },
   {
     id: "settings",
@@ -93,8 +86,10 @@ export const TECH_COLORS = {
 export const APP_CONFIG = {
   DRAWER_WIDTH: 280,
   DRAWER_WIDTH_COLLAPSED: 64,
-  APP_NAME: "TELECOM OPS",
+  APP_NAME: "راصد",
+  APP_NAME_EN: "RASED",
   VERSION: "1.0.0",
+  COPYRIGHT: "© 2024 راصد - جميع الحقوق محفوظة",
 };
 
 // API endpoints

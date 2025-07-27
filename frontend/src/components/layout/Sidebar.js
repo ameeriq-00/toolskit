@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Drawer,
   List,
@@ -11,7 +11,7 @@ import {
   Badge,
   Chip,
   Divider,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   Analytics as AnalyticsIcon,
@@ -25,10 +25,10 @@ import {
   AdminPanelSettings as AdminIcon,
   ExpandLess,
   ExpandMore,
-} from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { APP_CONFIG } from "../../utils/constants";
+} from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { APP_CONFIG } from '../../utils/constants';
 
 const iconMap = {
   Dashboard: DashboardIcon,
@@ -45,63 +45,63 @@ const iconMap = {
 
 const menuItems = [
   {
-    id: "dashboard",
-    title: "لوحة التحكم",
-    icon: "Dashboard",
-    path: "/",
+    id: 'dashboard',
+    title: 'لوحة التحكم',
+    icon: 'Dashboard',
+    path: '/',
   },
   {
-    id: "analysis",
-    title: "أدوات التحليل",
-    icon: "Analytics",
+    id: 'analysis',
+    title: 'أدوات التحليل',
+    icon: 'Analytics',
     children: [
       {
-        id: "excel-analyzer",
-        title: "محلل Excel",
-        icon: "Upload",
-        path: "/excel-analyzer",
+        id: 'excel-analyzer',
+        title: 'محلل Excel',
+        icon: 'Upload',
+        path: '/excel-analyzer',
       },
       {
-        id: "excel-analyzer-z",
-        title: "محلل Excel Z",
-        icon: "Timeline",
-        path: "/excel-analyzer-z",
+        id: 'excel-analyzer-z',
+        title: 'محلل Excel Z',
+        icon: 'Timeline',
+        path: '/excel-analyzer-z',
       },
       {
-        id: "sheets-comparison",
-        title: "مقارنة الشيتات",
-        icon: "Compare",
-        path: "/sheets-comparison",
-        badge: "NEW",
+        id: 'sheets-comparison',
+        title: 'مقارنة الشيتات',
+        icon: 'Compare',
+        path: '/sheets-comparison',
+        badge: 'NEW',
       },
     ],
   },
   {
-    id: "towers",
-    title: "إدارة الأبراج",
-    icon: "CellTower",
+    id: 'towers',
+    title: 'إدارة الأبراج',
+    icon: 'CellTower',
     children: [
       {
-        id: "tower-search",
-        title: "بحث الأبراج",
-        icon: "Search",
-        path: "/site-search",
+        id: 'tower-search',
+        title: 'بحث الأبراج',
+        icon: 'Search',
+        path: '/site-search',
       },
       {
-        id: "tower-management",
-        title: "إدارة البيانات",
-        icon: "AdminPanelSettings",
-        path: "/site-management",
+        id: 'tower-management',
+        title: 'إدارة البيانات',
+        icon: 'AdminPanelSettings',
+        path: '/site-management',
         adminOnly: true,
-        badge: "ADMIN",
+        badge: 'ADMIN',
       },
     ],
   },
   {
-    id: "settings",
-    title: "الإعدادات",
-    icon: "Settings",
-    path: "/settings",
+    id: 'settings',
+    title: 'الإعدادات',
+    icon: 'Settings',
+    path: '/settings',
   },
 ];
 
@@ -221,21 +221,27 @@ const Sidebar = ({ open, onClose }) => {
       {/* Logo/Brand Section */}
       <Box sx={{ p: 3, textAlign: "center" }}>
         <Typography
-          variant="h5"
+          variant="h4"
           sx={{
             color: "primary.main",
             fontWeight: "bold",
+            fontSize: "2rem",
             letterSpacing: "0.1em",
             textShadow: "0 0 10px rgba(0, 255, 136, 0.5)",
+            mb: 1,
           }}
         >
-          ⚡ {APP_CONFIG.APP_NAME}
+          راصد
         </Typography>
         <Typography
           variant="caption"
-          sx={{ color: "text.secondary", display: "block", mt: 1 }}
+          sx={{
+            color: "text.secondary",
+            display: "block",
+            fontSize: "0.75rem",
+          }}
         >
-          منصة التحليل المتقدمة
+          منصة التحليل المتقدمة للاتصالات
         </Typography>
       </Box>
 
@@ -248,14 +254,28 @@ const Sidebar = ({ open, onClose }) => {
         </List>
       </Box>
 
-      {/* User Info */}
-      <Box sx={{ p: 2, borderTop: "1px solid rgba(0, 255, 136, 0.2)" }}>
-        <Typography variant="caption" color="text.secondary">
-          مرحباً، {user?.username || "المستخدم"}
+      {/* Copyright Footer */}
+      <Box
+        sx={{
+          p: 2,
+          borderTop: "1px solid rgba(0, 255, 136, 0.2)",
+          textAlign: "center",
+        }}
+      >
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ fontSize: "0.65rem" }}
+        >
+          {APP_CONFIG.COPYRIGHT}
         </Typography>
         <br />
-        <Typography variant="caption" color="text.secondary">
-          الصلاحية: {user?.is_staff ? "مدير" : "مستخدم"}
+        <Typography
+          variant="caption"
+          color="primary"
+          sx={{ fontSize: "0.6rem" }}
+        >
+          الإصدار {APP_CONFIG.VERSION}
         </Typography>
       </Box>
     </Box>
@@ -273,6 +293,7 @@ const Sidebar = ({ open, onClose }) => {
           width: APP_CONFIG.DRAWER_WIDTH,
           boxSizing: "border-box",
           direction: "rtl",
+          zIndex: 1200,
         },
       }}
     >

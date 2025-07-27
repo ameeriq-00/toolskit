@@ -53,16 +53,17 @@ const TopBar = () => {
       position="fixed"
       sx={{
         width: `calc(100% - ${APP_CONFIG.DRAWER_WIDTH}px)`,
-        ml: `${APP_CONFIG.DRAWER_WIDTH}px`,
+        mr: `${APP_CONFIG.DRAWER_WIDTH}px`, // تغيير من ml إلى mr للجانب الأيمن
         background: "linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 100%)",
         borderBottom: "2px solid #00ff88",
         boxShadow: "0 2px 20px rgba(0, 255, 136, 0.3)",
+        zIndex: 1100, // أقل من الـ sidebar
       }}
     >
       <Toolbar>
         {/* Current Page Title */}
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          منصة التحليل المتقدمة
+          منصة راصد للتحليل المتقدم
         </Typography>
 
         {/* System Status */}
@@ -93,7 +94,12 @@ const TopBar = () => {
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Typography
             variant="body2"
-            sx={{ mr: 1, display: { xs: "none", sm: "block" } }}
+            sx={{
+              mr: 1,
+              display: { xs: "none", sm: "block" },
+              color: "primary.main",
+              fontWeight: "bold",
+            }}
           >
             {user?.username || "المستخدم"}
           </Typography>
@@ -120,9 +126,10 @@ const TopBar = () => {
                   color: "primary.contrastText",
                   fontSize: "1rem",
                   fontWeight: "bold",
+                  border: "2px solid #fff",
                 }}
               >
-                {user?.username?.charAt(0).toUpperCase() || "U"}
+                {user?.username?.charAt(0).toUpperCase() || "ر"}
               </Avatar>
             </IconButton>
           </Tooltip>
@@ -137,8 +144,9 @@ const TopBar = () => {
             sx: {
               mt: 1.5,
               minWidth: 200,
-              background: "#1a1a1a",
-              border: "1px solid #333",
+              background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
+              border: "1px solid rgba(0, 255, 136, 0.3)",
+              borderRadius: 2,
               boxShadow: "0 8px 32px rgba(0, 255, 136, 0.2)",
             },
           }}
@@ -146,30 +154,43 @@ const TopBar = () => {
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
           {/* User Info */}
-          <Box sx={{ px: 2, py: 1, borderBottom: "1px solid #333" }}>
-            <Typography variant="subtitle2" color="primary">
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              color="primary"
+              sx={{ fontWeight: "bold" }}
+            >
               {user?.username || "المستخدم"}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {user?.email || "user@example.com"}
+              {user?.email || "user@rased.com"}
             </Typography>
             <br />
             <Chip
               label={user?.is_staff ? "مدير النظام" : "مستخدم"}
               size="small"
-              color={user?.is_staff ? "error" : "default"}
-              sx={{ mt: 0.5 }}
+              color={user?.is_staff ? "error" : "success"}
+              sx={{ mt: 0.5, fontSize: "0.65rem" }}
             />
           </Box>
 
           {/* Menu Items */}
-          <MenuItem onClick={handleSettings}>
-            <SettingsIcon sx={{ mr: 1 }} />
-            الإعدادات
+          <MenuItem onClick={handleSettings} sx={{ py: 1.5 }}>
+            <SettingsIcon sx={{ mr: 2, color: "primary.main" }} />
+            <Typography>الإعدادات</Typography>
           </MenuItem>
-          <MenuItem onClick={handleLogout}>
-            <LogoutIcon sx={{ mr: 1 }} />
-            تسجيل الخروج
+          <MenuItem
+            onClick={handleLogout}
+            sx={{ py: 1.5, color: "error.main" }}
+          >
+            <LogoutIcon sx={{ mr: 2 }} />
+            <Typography>تسجيل الخروج</Typography>
           </MenuItem>
         </Menu>
       </Toolbar>

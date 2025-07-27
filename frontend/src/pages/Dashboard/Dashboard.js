@@ -26,10 +26,13 @@ const StatCard = ({ title, value, icon, color, trend, onClick }) => (
     sx={{
       cursor: onClick ? "pointer" : "default",
       transition: "all 0.3s ease",
+      background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
+      border: "1px solid rgba(0, 255, 136, 0.1)",
       "&:hover": onClick
         ? {
             transform: "translateY(-4px)",
-            boxShadow: "0 12px 40px rgba(0, 255, 136, 0.2)",
+            boxShadow: "0 12px 40px rgba(0, 255, 136, 0.3)",
+            borderColor: "primary.main",
           }
         : {},
     }}
@@ -44,16 +47,28 @@ const StatCard = ({ title, value, icon, color, trend, onClick }) => (
             backgroundColor: `${color}.main`,
             color: `${color}.contrastText`,
             mr: 2,
+            boxShadow: `0 4px 12px ${
+              color === "primary"
+                ? "rgba(0, 255, 136, 0.3)"
+                : "rgba(255, 255, 255, 0.1)"
+            }`,
           }}
         >
           {icon}
         </Box>
-        <Typography variant="h6" color="text.secondary">
+        <Typography
+          variant="h6"
+          color="text.secondary"
+          sx={{ fontWeight: 600 }}
+        >
           {title}
         </Typography>
       </Box>
 
-      <Typography variant="h4" sx={{ mb: 1, fontWeight: "bold" }}>
+      <Typography
+        variant="h4"
+        sx={{ mb: 1, fontWeight: "bold", color: "primary.main" }}
+      >
         {value?.toLocaleString() || "0"}
       </Typography>
 
@@ -63,6 +78,7 @@ const StatCard = ({ title, value, icon, color, trend, onClick }) => (
           label={trend}
           color="success"
           icon={<TrendingUpIcon sx={{ fontSize: 16 }} />}
+          sx={{ fontSize: "0.7rem" }}
         />
       )}
     </CardContent>
@@ -74,9 +90,12 @@ const QuickActionCard = ({ title, description, icon, color, onClick }) => (
     sx={{
       cursor: "pointer",
       transition: "all 0.3s ease",
+      background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
+      border: "1px solid rgba(0, 255, 136, 0.1)",
       "&:hover": {
-        transform: "translateY(-2px)",
+        transform: "translateY(-4px)",
         borderColor: `${color}.main`,
+        boxShadow: `0 8px 25px rgba(0, 255, 136, 0.2)`,
       },
     }}
     onClick={onClick}
@@ -90,11 +109,12 @@ const QuickActionCard = ({ title, description, icon, color, onClick }) => (
           backgroundColor: `${color}.main`,
           color: `${color}.contrastText`,
           mb: 2,
+          boxShadow: `0 4px 16px rgba(0, 255, 136, 0.3)`,
         }}
       >
         {icon}
       </Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
         {title}
       </Typography>
       <Typography variant="body2" color="text.secondary">
@@ -154,8 +174,17 @@ const Dashboard = () => {
   if (loading && !statistics) {
     return (
       <Box sx={{ width: "100%", mt: 2 }}>
-        <LinearProgress />
-        <Typography variant="body2" sx={{ mt: 1, textAlign: "center" }}>
+        <LinearProgress
+          sx={{
+            "& .MuiLinearProgress-bar": {
+              background: "linear-gradient(90deg, #00ff88 0%, #00cc6a 100%)",
+            },
+          }}
+        />
+        <Typography
+          variant="body2"
+          sx={{ mt: 1, textAlign: "center", color: "primary.main" }}
+        >
           جاري تحميل البيانات...
         </Typography>
       </Box>
@@ -166,17 +195,42 @@ const Dashboard = () => {
     <Box>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          لوحة التحكم الرئيسية
+        <Typography
+          variant="h4"
+          gutterBottom
+          sx={{
+            fontWeight: "bold",
+            background: "linear-gradient(45deg, #00ff88 0%, #00cc6a 100%)",
+            backgroundClip: "text",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            WebkitTextFillColor: "transparent",
+          }}
+        >
+          لوحة التحكم الرئيسية - راصد
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          مرحباً بك في منصة التحليل المتقدمة للاتصالات
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ fontSize: "1.1rem" }}
+        >
+          مرحباً بك في منصة راصد للتحليل المتقدم للاتصالات
         </Typography>
       </Box>
 
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert
+          severity="error"
+          sx={{
+            mb: 3,
+            background: "rgba(255, 23, 68, 0.1)",
+            border: "1px solid rgba(255, 23, 68, 0.3)",
+            "& .MuiAlert-icon": {
+              color: "#ff1744",
+            },
+          }}
+        >
           {error}
         </Alert>
       )}
@@ -226,7 +280,11 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h5" gutterBottom>
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{ fontWeight: 600, color: "primary.main" }}
+        >
           الإجراءات السريعة
         </Typography>
         <Grid container spacing={3}>
@@ -239,19 +297,42 @@ const Dashboard = () => {
       </Box>
 
       {/* System Status */}
-      <Card sx={{ mb: 3 }}>
+      <Card
+        sx={{
+          mb: 3,
+          background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
+          border: "1px solid rgba(0, 255, 136, 0.2)",
+        }}
+      >
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            حالة النظام
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{ fontWeight: 600, color: "primary.main" }}
+          >
+            حالة النظام - راصد
           </Typography>
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <Chip label="الخادم متصل" color="success" />
-            <Chip label="قاعدة البيانات متصلة" color="success" />
-            <Chip label="API متاح" color="success" />
+            <Chip
+              label="الخادم متصل"
+              color="success"
+              sx={{ fontWeight: "bold" }}
+            />
+            <Chip
+              label="قاعدة البيانات متصلة"
+              color="success"
+              sx={{ fontWeight: "bold" }}
+            />
+            <Chip
+              label="API متاح"
+              color="success"
+              sx={{ fontWeight: "bold" }}
+            />
             <Chip
               label="آخر تحديث: منذ 5 دقائق"
               color="info"
               variant="outlined"
+              sx={{ fontWeight: "bold" }}
             />
           </Box>
         </CardContent>

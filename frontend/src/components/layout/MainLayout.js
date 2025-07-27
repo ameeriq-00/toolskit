@@ -32,6 +32,8 @@ const MainLayout = ({ children }) => {
           minHeight: "100vh",
           backgroundColor: "background.default",
           direction: "ltr", // Content direction
+          marginRight: 0, // إزالة أي margin من الجانب الأيمن
+          marginLeft: 0, // إزالة أي margin من الجانب الأيسر
         }}
       >
         {/* Toolbar spacer */}
