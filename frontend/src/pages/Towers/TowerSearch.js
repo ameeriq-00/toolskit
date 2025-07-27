@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -28,7 +28,7 @@ import {
   Switch,
   FormControlLabel,
   Divider,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -36,10 +36,12 @@ import {
   LocationOn as LocationIcon,
   CellTower as TowerIcon,
   Close as CloseIcon,
-} from '@mui/icons-material';
-import { useSiteSearch } from '../../hooks/useApi';
-import { TECH_COLORS } from '../../utils/constants';
-import SiteCoverageMap from '../../components/analysis/SiteCoverageMap';
+  MyLocation as NearbyIcon,
+} from "@mui/icons-material";
+import { useSiteSearch } from "../../hooks/useApi";
+import { TECH_COLORS } from "../../utils/constants";
+import SiteCoverageMap from "../../components/analysis/SiteCoverageMap";
+import apiService from "../../services/api";
 
 const TowerSearch = () => {
   const [searchInput, setSearchInput] = useState("");
@@ -135,6 +137,38 @@ const TowerSearch = () => {
   const handleMapClose = () => {
     setMapDialogOpen(false);
     setSelectedSite(null);
+  };
+
+  // دالة البحث عن الأبراج القريبة - NEW FEATURE
+  const handleFindNearby = async (site, siteType) => {
+    try {
+      console.log("البحث عن الأبراج القريبة...", { site, siteType });
+
+      // تحضير بيانات البرج للبحث
+      const siteData = {
+        site_id: site.site_id,
+        site_name: site.site_name,
+        technology: site.technology,
+        coordinates: site.coordinates,
+      };
+
+      let result;
+      if (siteType === "asia") {
+        result = await apiService.findNearbyAsiaSites(siteData, 2);
+      } else if (siteType === "zain") {
+        result = await apiService.findNearbyZainSites(siteData, 2);
+      }
+
+      if (result && result.success) {
+        return result.data.nearby_sites || [];
+      } else {
+        console.error("فشل في البحث عن الأبراج القريبة:", result?.error);
+        return [];
+      }
+    } catch (error) {
+      console.error("خطأ في البحث عن الأبراج القريبة:", error);
+      return [];
+    }
   };
 
   return (
@@ -536,7 +570,7 @@ const TowerSearch = () => {
         </Card>
       )}
 
-      {/* Map Dialog */}
+      {/* Map Dialog with Enhanced Coverage Map */}
       <Dialog
         open={mapDialogOpen}
         onClose={handleMapClose}
@@ -552,7 +586,7 @@ const TowerSearch = () => {
             }}
           >
             <Typography variant="h6">
-              موقع البرج: {selectedSite?.site_name}
+              🎯 موقع البرج: {selectedSite?.site_name}
             </Typography>
             <IconButton onClick={handleMapClose} color="inherit">
               <CloseIcon />
@@ -572,7 +606,12 @@ const TowerSearch = () => {
                   {Math.round(selectedSite.match_confidence * 100)}%
                 </Typography>
               </Box>
-              <SiteCoverageMap site={selectedSite} />
+              {/* استخدام الخريطة المحدثة مع دعم الأبراج القريبة */}
+              <SiteCoverageMap
+                site={selectedSite}
+                height="500px"
+                onFindNearby={handleFindNearby}
+              />
             </>
           )}
         </DialogContent>

@@ -11,6 +11,10 @@ from .views.site_search_views import (
     get_search_statistics, quick_site_search, advanced_site_search, 
     get_available_cities
 )
+from .views.nearby_sites_views import (
+    find_nearby_sites, find_nearby_asia_sites, find_nearby_zain_sites,
+    get_nearby_sites_in_radius, test_nearby_search
+)
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -34,7 +38,7 @@ urlpatterns = [
     path('sites/upload/z/', upload_z_format_sites, name='upload_z_sites'),
     path('sites/upload/statistics/', get_upload_statistics, name='upload_statistics'),
     
-    # Site Search endpoints - NEW SYSTEM
+    # Site Search endpoints - EXISTING SYSTEM
     path('sites/simplified-search/', simplified_site_search, name='simplified_site_search'),
     path('sites/search/', search_sites, name='search_sites'),
     path('sites/quick-search/', quick_site_search, name='quick_site_search'),
@@ -42,6 +46,13 @@ urlpatterns = [
     path('sites/<int:site_id>/<str:technology>/details/', get_site_details, name='get_site_details'),
     path('sites/statistics/', get_search_statistics, name='search_statistics'),
     path('sites/cities/', get_available_cities, name='available_cities'),
+    
+    # Nearby Sites endpoints - NEW SYSTEM
+    path('sites/nearby/', find_nearby_sites, name='find_nearby_sites'),
+    path('sites/nearby/asia/', find_nearby_asia_sites, name='find_nearby_asia_sites'),
+    path('sites/nearby/zain/', find_nearby_zain_sites, name='find_nearby_zain_sites'),
+    path('sites/nearby/radius/', get_nearby_sites_in_radius, name='get_nearby_sites_in_radius'),
+    path('sites/nearby/test/', test_nearby_search, name='test_nearby_search'),  # للاختبار فقط
     
     # Other endpoints (existing)
     path('number-lookup/', auth_views.number_lookup, name='number_lookup'),

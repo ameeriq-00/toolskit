@@ -97,6 +97,88 @@ const apiService = {
     return response.data;
   },
 
+  // ===== NEW: Nearby Sites Functions =====
+
+  /**
+   * البحث عن الأبراج القريبة باستخدام معرف البرج والتقنية
+   */
+  async findNearbySites(siteId, technology, searchType = "asia", limit = 2) {
+    const response = await api.post("/api/sites/nearby/", {
+      site_id: siteId,
+      technology: technology,
+      search_type: searchType,
+      limit: limit,
+    });
+    return response.data;
+  },
+
+  /**
+   * البحث عن أقرب أبراج آسيا (2G, 3G, 4G)
+   */
+  async findNearbyAsiaSites(siteData, limit = 2) {
+    const response = await api.post("/api/sites/nearby/asia/", {
+      site_data: siteData,
+      limit: limit,
+    });
+    return response.data;
+  },
+
+  /**
+   * البحث عن أقرب أبراج زين (Z Format)
+   */
+  async findNearbyZainSites(siteData, limit = 2) {
+    const response = await api.post("/api/sites/nearby/zain/", {
+      site_data: siteData,
+      limit: limit,
+    });
+    return response.data;
+  },
+
+  /**
+   * الحصول على جميع الأبراج في نطاق معين
+   */
+  async getSitesInRadius(lat, lon, radius = 5, technology = "all") {
+    const response = await api.get("/api/sites/nearby/radius/", {
+      params: {
+        lat: lat,
+        lon: lon,
+        radius: radius,
+        technology: technology,
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * دالة مساعدة للبحث عن الأبراج القريبة من موقع معين
+   */
+  async findNearbyByType(siteData, searchType) {
+    if (searchType === "asia") {
+      return await this.findNearbyAsiaSites(siteData);
+    } else if (searchType === "zain") {
+      return await this.findNearbyZainSites(siteData);
+    } else {
+      throw new Error('نوع البحث غير صحيح. استخدم "asia" أو "zain"');
+    }
+  },
+
+  /**
+   * حساب المسافة بين نقطتين (استخدام محلي)
+   */
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  },
+
   // Generic methods
   async get(endpoint) {
     const response = await api.get(endpoint);
