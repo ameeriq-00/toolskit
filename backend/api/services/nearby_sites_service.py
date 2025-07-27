@@ -29,8 +29,61 @@ class NearbySitesService:
         return distance
     
     @staticmethod
+    def are_coordinates_same(lat1: float, lon1: float, lat2: float, lon2: float, tolerance: float = 0.0001) -> bool:
+        """التحقق من تشابه الإحداثيات مع هامش خطأ صغير"""
+        return abs(lat1 - lat2) < tolerance and abs(lon1 - lon2) < tolerance
+    
+    @staticmethod
+    def filter_unique_coordinates(sites_list: List[Dict], limit: int = 2) -> List[Dict]:
+        """فلترة الأبراج للحصول على برجين بإحداثيات مختلفة"""
+        unique_sites = []
+        used_coordinates = []
+        
+        print(f"🔍 فلترة {len(sites_list)} برج للحصول على {limit} برج بإحداثيات مختلفة")
+        
+        for site in sites_list:
+            try:
+                site_lat = float(site['coordinates']['latitude'])
+                site_lon = float(site['coordinates']['longitude'])
+                
+                # التحقق من عدم تشابه الإحداثيات مع الأبراج المُضافة مسبقاً
+                is_duplicate = False
+                for used_coord in used_coordinates:
+                    if NearbySitesService.are_coordinates_same(
+                        site_lat, site_lon, 
+                        used_coord['lat'], used_coord['lon']
+                    ):
+                        print(f"❌ تجاهل البرج {site['site_name']} - إحداثيات متشابهة مع برج سابق")
+                        is_duplicate = True
+                        break
+                
+                if not is_duplicate:
+                    unique_sites.append(site)
+                    used_coordinates.append({
+                        'lat': site_lat, 
+                        'lon': site_lon,
+                        'site_name': site['site_name']
+                    })
+                    print(f"✅ إضافة البرج {site['site_name']} - إحداثيات فريدة ({site_lat:.4f}, {site_lon:.4f})")
+                    
+                    # التوقف عند الوصول للعدد المطلوب
+                    if len(unique_sites) >= limit:
+                        break
+                        
+            except (ValueError, KeyError, TypeError) as e:
+                print(f"⚠️ خطأ في معالجة إحداثيات البرج {site.get('site_name', 'غير معروف')}: {e}")
+                continue
+        
+        print(f"📊 النتيجة النهائية: {len(unique_sites)} برج بإحداثيات فريدة من أصل {len(sites_list)}")
+        for i, site in enumerate(unique_sites):
+            coords = site['coordinates']
+            print(f"  {i+1}. {site['site_name']} ({coords['latitude']:.4f}, {coords['longitude']:.4f}) - {site['distance']:.2f} كم")
+        
+        return unique_sites
+    
+    @staticmethod
     def find_nearby_asia_sites(site_data: Dict, limit: int = 2) -> List[Dict]:
-        """البحث عن أقرب أبراج آسيا (2G, 3G, 4G) - مصحح لإرجاع أقرب برجين"""
+        """البحث عن أقرب أبراج آسيا مع فلترة الإحداثيات المتشابهة"""
         try:
             # استيراد النماذج محلياً لتجنب الاستيراد الدائري
             from ..models import TwoGSiteInformation, ThreeGSiteInformation, FourGSiteInformation
@@ -39,8 +92,8 @@ class NearbySitesService:
             current_lon = float(site_data['coordinates']['longitude'])
             current_site_id = str(site_data['site_id'])
             
-            print(f"البحث عن أبراج آسيا القريبة للبرج: {current_site_id}")
-            print(f"الإحداثيات: {current_lat}, {current_lon}")
+            print(f"🔍 البحث عن أبراج آسيا القريبة للبرج: {current_site_id}")
+            print(f"📍 الإحداثيات: {current_lat}, {current_lon}")
             
             all_nearby_sites = []
             
@@ -139,32 +192,34 @@ class NearbySitesService:
                     print(f"خطأ في معالجة برج 4G {site.site_id}: {e}")
                     continue
             
-            # ترتيب حسب المسافة وإرجاع أقرب المواقع
+            # ترتيب حسب المسافة
             all_nearby_sites.sort(key=lambda x: x['distance'])
+            
+            print(f"📊 تم العثور على {len(all_nearby_sites)} برج آسيا إجمالاً قبل الفلترة")
             
             # التأكد من وجود مواقع
             if not all_nearby_sites:
-                print("لم يتم العثور على أي أبراج آسيا قريبة")
+                print("❌ لم يتم العثور على أي أبراج آسيا قريبة")
                 return []
             
-            # أخذ أقرب موقعين
-            closest_sites = all_nearby_sites[:limit]
+            # فلترة الإحداثيات المتشابهة والحصول على أقرب برجين بإحداثيات مختلفة
+            unique_sites = NearbySitesService.filter_unique_coordinates(all_nearby_sites, limit)
             
-            print(f"تم العثور على {len(closest_sites)} برج آسيا قريب:")
-            for i, site in enumerate(closest_sites):
+            print(f"✅ النتيجة النهائية: {len(unique_sites)} برج آسيا بإحداثيات فريدة:")
+            for i, site in enumerate(unique_sites):
                 print(f"  {i+1}. {site['site_name']} ({site['technology']}) - {site['distance']:.2f} كم")
             
-            return closest_sites
+            return unique_sites
             
         except Exception as e:
-            print(f"خطأ في البحث عن أبراج آسيا القريبة: {str(e)}")
+            print(f"💥 خطأ في البحث عن أبراج آسيا القريبة: {str(e)}")
             import traceback
             traceback.print_exc()
             return []
     
     @staticmethod
     def find_nearby_zain_sites(site_data: Dict, limit: int = 2) -> List[Dict]:
-        """البحث عن أقرب أبراج زين (Z Format) - مصحح لإرجاع أقرب برجين"""
+        """البحث عن أقرب أبراج زين مع فلترة الإحداثيات المتشابهة"""
         try:
             # استيراد النماذج محلياً لتجنب الاستيراد الدائري
             from ..models import SiteInformation
@@ -173,8 +228,8 @@ class NearbySitesService:
             current_lon = float(site_data['coordinates']['longitude'])
             current_site_id = str(site_data['site_id'])
             
-            print(f"البحث عن أبراج زين القريبة للبرج: {current_site_id}")
-            print(f"الإحداثيات: {current_lat}, {current_lon}")
+            print(f"🔍 البحث عن أبراج زين القريبة للبرج: {current_site_id}")
+            print(f"📍 الإحداثيات: {current_lat}, {current_lon}")
             
             all_nearby_sites = []
             
@@ -210,40 +265,42 @@ class NearbySitesService:
                     print(f"خطأ في معالجة برج زين {site.site_enb_id}: {e}")
                     continue
             
-            # ترتيب حسب المسافة وإرجاع أقرب المواقع
+            # ترتيب حسب المسافة
             all_nearby_sites.sort(key=lambda x: x['distance'])
+            
+            print(f"📊 تم العثور على {len(all_nearby_sites)} برج زين إجمالاً قبل الفلترة")
             
             # التأكد من وجود مواقع
             if not all_nearby_sites:
-                print("لم يتم العثور على أي أبراج زين قريبة")
+                print("❌ لم يتم العثور على أي أبراج زين قريبة")
                 return []
             
-            # أخذ أقرب موقعين
-            closest_sites = all_nearby_sites[:limit]
+            # فلترة الإحداثيات المتشابهة والحصول على أقرب برجين بإحداثيات مختلفة
+            unique_sites = NearbySitesService.filter_unique_coordinates(all_nearby_sites, limit)
             
-            print(f"تم العثور على {len(closest_sites)} برج زين قريب:")
-            for i, site in enumerate(closest_sites):
+            print(f"✅ النتيجة النهائية: {len(unique_sites)} برج زين بإحداثيات فريدة:")
+            for i, site in enumerate(unique_sites):
                 print(f"  {i+1}. {site['site_name']} ({site['technology']}) - {site['distance']:.2f} كم")
             
-            return closest_sites
+            return unique_sites
             
         except Exception as e:
-            print(f"خطأ في البحث عن أبراج زين القريبة: {str(e)}")
+            print(f"💥 خطأ في البحث عن أبراج زين القريبة: {str(e)}")
             import traceback
             traceback.print_exc()
             return []
     
     @staticmethod
     def find_nearby_sites_by_type(site_data: Dict, site_type: str, limit: int = 2) -> List[Dict]:
-        """البحث عن الأبراج القريبة حسب النوع"""
-        print(f"البحث عن الأبراج القريبة من نوع: {site_type}")
+        """البحث عن الأبراج القريبة حسب النوع مع فلترة الإحداثيات"""
+        print(f"🔍 البحث عن أقرب {limit} أبراج من نوع: {site_type} بإحداثيات مختلفة")
         
         if site_type.lower() == 'asia':
             return NearbySitesService.find_nearby_asia_sites(site_data, limit)
         elif site_type.lower() in ['zain', 'z']:
             return NearbySitesService.find_nearby_zain_sites(site_data, limit)
         else:
-            print(f"نوع البحث غير مدعوم: {site_type}")
+            print(f"❌ نوع البحث غير مدعوم: {site_type}")
             return []
     
     @staticmethod
@@ -302,6 +359,6 @@ class NearbySitesService:
                     }
                 }
         except Exception as e:
-            print(f"خطأ في الحصول على تفاصيل البرج: {str(e)}")
+            print(f"💥 خطأ في الحصول على تفاصيل البرج: {str(e)}")
         
         return None

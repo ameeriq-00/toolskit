@@ -142,34 +142,74 @@ const TowerSearch = () => {
   // دالة البحث عن الأبراج القريبة - NEW FEATURE
   const handleFindNearby = async (site, siteType) => {
     try {
-      console.log("البحث عن الأبراج القريبة...", { site, siteType });
+      console.log("🔍 البحث عن الأبراج القريبة...", { site, siteType });
 
       // تحضير بيانات البرج للبحث
       const siteData = {
         site_id: site.site_id,
         site_name: site.site_name,
         technology: site.technology,
-        coordinates: site.coordinates,
+        coordinates: {
+          latitude: parseFloat(site.coordinates.latitude),
+          longitude: parseFloat(site.coordinates.longitude),
+        },
       };
+
+      console.log("📍 بيانات البرج المرسلة:", siteData);
 
       let result;
       if (siteType === "asia") {
+        // البحث عن أقرب برجين آسيا
         result = await apiService.findNearbyAsiaSites(siteData, 2);
+        console.log("✅ نتيجة البحث - آسيا:", result);
       } else if (siteType === "zain") {
+        // البحث عن أقرب برجين زين
         result = await apiService.findNearbyZainSites(siteData, 2);
+        console.log("✅ نتيجة البحث - زين:", result);
       }
 
       if (result && result.success) {
-        return result.data.nearby_sites || [];
+        const nearbySites = result.data.nearby_sites || [];
+        console.log(
+          `🎯 تم العثور على ${nearbySites.length} أبراج قريبة:`,
+          nearbySites
+        );
+
+        // التأكد من إرجاع البيانات بالشكل الصحيح
+        if (nearbySites.length > 0) {
+          // طباعة تفاصيل كل برج للتأكد
+          nearbySites.forEach((nearbysite, index) => {
+            console.log(`📌 البرج ${index + 1}:`, {
+              name: nearbysite.site_name,
+              id: nearbysite.site_id,
+              tech: nearbysite.technology,
+              distance: nearbysite.distance?.toFixed(2) + " كم",
+              coordinates: nearbysite.coordinates,
+            });
+          });
+
+          // إرجاع أقرب برجين فقط (للتأكد)
+          const finalSites = nearbySites.slice(0, 2);
+          console.log(
+            `📊 سيتم عرض ${finalSites.length} برج من أصل ${nearbySites.length}`
+          );
+
+          return finalSites;
+        } else {
+          console.warn("⚠️ لم يتم العثور على أي أبراج قريبة");
+          return [];
+        }
       } else {
-        console.error("فشل في البحث عن الأبراج القريبة:", result?.error);
+        console.error("❌ فشل في البحث عن الأبراج القريبة:", result?.error);
         return [];
       }
     } catch (error) {
-      console.error("خطأ في البحث عن الأبراج القريبة:", error);
+      console.error("💥 خطأ في البحث عن الأبراج القريبة:", error);
       return [];
     }
   };
+
+
 
   return (
     <Box>

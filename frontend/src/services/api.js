@@ -97,7 +97,133 @@ const apiService = {
     return response.data;
   },
 
-  // ===== NEW: Nearby Sites Functions =====
+  // ===== ENHANCED: Nearby Sites Functions =====
+
+  /**
+   * البحث عن أقرب أبراج آسيا (2G, 3G, 4G) - محسن لضمان إرجاع برجين
+   */
+  async findNearbyAsiaSites(siteData, limit = 2) {
+    try {
+      console.log("🔍 طلب البحث عن أبراج آسيا:", { siteData, limit });
+
+      // التأكد من أن limit = 2 على الأقل
+      const requestLimit = Math.max(limit, 2);
+
+      const response = await api.post("/api/sites/nearby/asia/", {
+        site_data: {
+          site_id: siteData.site_id,
+          site_name: siteData.site_name,
+          technology: siteData.technology,
+          coordinates: {
+            latitude: parseFloat(siteData.coordinates.latitude),
+            longitude: parseFloat(siteData.coordinates.longitude),
+          },
+        },
+        limit: requestLimit,
+      });
+
+      console.log("✅ استجابة أبراج آسيا:", response.data);
+
+      if (response.data.success) {
+        const nearbyAsiaSites = response.data.data.nearby_sites || [];
+
+        // التأكد من إرجاع أقرب برجين على الأقل (إذا توفرا)
+        const finalSites = nearbyAsiaSites.slice(0, requestLimit);
+
+        console.log(
+          `📍 تم العثور على ${finalSites.length} برج آسيا قريب:`,
+          finalSites
+        );
+
+        return {
+          success: true,
+          data: {
+            nearby_sites: finalSites,
+            total_found: finalSites.length,
+            search_type: "asia",
+          },
+        };
+      } else {
+        console.error("❌ فشل في البحث عن أبراج آسيا:", response.data.error);
+        return {
+          success: false,
+          error: response.data.error || "فشل في البحث عن أبراج آسيا",
+        };
+      }
+    } catch (error) {
+      console.error("💥 خطأ في البحث عن أبراج آسيا:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.message ||
+          "خطأ في الاتصال بالخادم",
+      };
+    }
+  },
+
+  /**
+   * البحث عن أقرب أبراج زين (Z Format) - محسن لضمان إرجاع برجين
+   */
+  async findNearbyZainSites(siteData, limit = 2) {
+    try {
+      console.log("🔍 طلب البحث عن أبراج زين:", { siteData, limit });
+
+      // التأكد من أن limit = 2 على الأقل
+      const requestLimit = Math.max(limit, 2);
+
+      const response = await api.post("/api/sites/nearby/zain/", {
+        site_data: {
+          site_id: siteData.site_id,
+          site_name: siteData.site_name,
+          technology: siteData.technology,
+          coordinates: {
+            latitude: parseFloat(siteData.coordinates.latitude),
+            longitude: parseFloat(siteData.coordinates.longitude),
+          },
+        },
+        limit: requestLimit,
+      });
+
+      console.log("✅ استجابة أبراج زين:", response.data);
+
+      if (response.data.success) {
+        const nearbyZainSites = response.data.data.nearby_sites || [];
+
+        // التأكد من إرجاع أقرب برجين على الأقل (إذا توفرا)
+        const finalSites = nearbyZainSites.slice(0, requestLimit);
+
+        console.log(
+          `📍 تم العثور على ${finalSites.length} برج زين قريب:`,
+          finalSites
+        );
+
+        return {
+          success: true,
+          data: {
+            nearby_sites: finalSites,
+            total_found: finalSites.length,
+            search_type: "zain",
+          },
+        };
+      } else {
+        console.error("❌ فشل في البحث عن أبراج زين:", response.data.error);
+        return {
+          success: false,
+          error: response.data.error || "فشل في البحث عن أبراج زين",
+        };
+      }
+    } catch (error) {
+      console.error("💥 خطأ في البحث عن أبراج زين:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.message ||
+          "خطأ في الاتصال بالخادم",
+      };
+    }
+  },
 
   /**
    * البحث عن الأبراج القريبة باستخدام معرف البرج والتقنية
@@ -107,28 +233,6 @@ const apiService = {
       site_id: siteId,
       technology: technology,
       search_type: searchType,
-      limit: limit,
-    });
-    return response.data;
-  },
-
-  /**
-   * البحث عن أقرب أبراج آسيا (2G, 3G, 4G)
-   */
-  async findNearbyAsiaSites(siteData, limit = 2) {
-    const response = await api.post("/api/sites/nearby/asia/", {
-      site_data: siteData,
-      limit: limit,
-    });
-    return response.data;
-  },
-
-  /**
-   * البحث عن أقرب أبراج زين (Z Format)
-   */
-  async findNearbyZainSites(siteData, limit = 2) {
-    const response = await api.post("/api/sites/nearby/zain/", {
-      site_data: siteData,
       limit: limit,
     });
     return response.data;
@@ -152,11 +256,11 @@ const apiService = {
   /**
    * دالة مساعدة للبحث عن الأبراج القريبة من موقع معين
    */
-  async findNearbyByType(siteData, searchType) {
+  async findNearbyByType(siteData, searchType, limit = 2) {
     if (searchType === "asia") {
-      return await this.findNearbyAsiaSites(siteData);
+      return await this.findNearbyAsiaSites(siteData, limit);
     } else if (searchType === "zain") {
-      return await this.findNearbyZainSites(siteData);
+      return await this.findNearbyZainSites(siteData, limit);
     } else {
       throw new Error('نوع البحث غير صحيح. استخدم "asia" أو "zain"');
     }
@@ -177,6 +281,19 @@ const apiService = {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  },
+
+  /**
+   * اختبار النظام - للتطوير فقط
+   */
+  async testNearbySearch() {
+    try {
+      const response = await api.post("/api/sites/nearby/test/");
+      return response.data;
+    } catch (error) {
+      console.error("خطأ في اختبار البحث:", error);
+      throw error;
+    }
   },
 
   // Generic methods

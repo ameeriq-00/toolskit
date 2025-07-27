@@ -12,6 +12,7 @@ import {
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
   MyLocation as NearbyIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
 
 // Fix for default markers
@@ -25,14 +26,16 @@ L.Icon.Default.mergeOptions({
 const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const nearbyLayersRef = useRef([]); // لتتبع طبقات الأبراج القريبة
+  const nearbyLayersRef = useRef([]);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [nearbyAsiaVisible, setNearbyAsiaVisible] = useState(false);
   const [nearbyZainVisible, setNearbyZainVisible] = useState(false);
+  const [nearbyAsiaCount, setNearbyAsiaCount] = useState(0);
+  const [nearbyZainCount, setNearbyZainCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
   // Constants
-  const COVERAGE_RADIUS_KM = 1; // 1 كيلومتر
+  const COVERAGE_RADIUS_KM = 1;
   const COVERAGE_RADIUS_DEG = COVERAGE_RADIUS_KM / 111;
 
   // Calculate destination point
@@ -64,9 +67,8 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
     centerLng,
     azimuthDegrees
   ) => {
-    const techColor = "#ff3333"; // أحمر عسكري
+    const techColor = "#ff3333";
 
-    // حساب نقاط المثلث
     const mainPoint = calculateDestinationPoint(
       centerLat,
       centerLng,
@@ -74,7 +76,6 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       COVERAGE_RADIUS_KM
     );
 
-    // زوايا أضيق للمثلث (45 درجة بدلاً من 60)
     const leftAngle = (azimuthDegrees - 22.5 + 360) % 360;
     const rightAngle = (azimuthDegrees + 22.5) % 360;
 
@@ -92,15 +93,13 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       COVERAGE_RADIUS_KM
     );
 
-    // رسم المثلث الأحمر مع النقطة في المركز
     const trianglePoints = [
-      [centerLat, centerLng], // نقطة البرج (قاعدة المثلث)
-      leftPoint, // النقطة اليسرى
-      mainPoint, // رأس المثلث (الاتجاه)
-      rightPoint, // النقطة اليمنى
+      [centerLat, centerLng],
+      leftPoint,
+      mainPoint,
+      rightPoint,
     ];
 
-    // المثلث الرئيسي باللون الأحمر
     const coverageTriangle = L.polygon(trianglePoints, {
       color: techColor,
       weight: 3,
@@ -110,7 +109,6 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       dashArray: "8, 4",
     }).addTo(map);
 
-    // خط الاتجاه الرئيسي
     const directionLine = L.polyline([[centerLat, centerLng], mainPoint], {
       color: techColor,
       weight: 4,
@@ -118,7 +116,6 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       dashArray: "12, 8",
     }).addTo(map);
 
-    // دائرة التغطية (1 كم)
     const coverageCircle = L.circle([centerLat, centerLng], {
       color: techColor,
       weight: 2,
@@ -128,7 +125,6 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       dashArray: "16, 8",
     }).addTo(map);
 
-    // إضافة تسميات الاتجاه
     const directionMarker = L.marker(mainPoint, {
       icon: L.divIcon({
         html: `<div style="
@@ -147,7 +143,6 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       }),
     }).addTo(map);
 
-    // Tooltip للمثلث
     coverageTriangle.bindTooltip(
       `منطقة التغطية الرئيسية<br>الاتجاه: ${azimuthDegrees}°<br>المدى: ${COVERAGE_RADIUS_KM} كم`,
       { permanent: false }
@@ -160,70 +155,133 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
     };
   };
 
-  // Find nearby sites function
+  // Find nearby sites function - محسن لضمان عرض أقرب برجين
   const findNearbySites = async (siteType) => {
-    if (!onFindNearby || !site) return;
+    if (!onFindNearby || !site) {
+      console.error("❌ لا توجد دالة البحث أو بيانات البرج");
+      return;
+    }
 
     setLoading(true);
     try {
-      console.log(`البحث عن الأبراج القريبة من نوع: ${siteType}`);
+      console.log(`🔍 بدء البحث عن أقرب برجين من نوع: ${siteType}`);
+      console.log("📍 بيانات البرج الحالي:", {
+        id: site.site_id,
+        name: site.site_name,
+        tech: site.technology,
+        coordinates: site.coordinates,
+      });
 
+      // طلب أقرب برجين صراحة
       const nearbySites = await onFindNearby(site, siteType);
 
-      console.log(
-        `تم العثور على ${nearbySites?.length || 0} أبراج قريبة:`,
-        nearbySites
-      );
+      console.log(`📊 نتيجة البحث:`, {
+        type: siteType,
+        found: nearbySites?.length || 0,
+        sites: nearbySites,
+      });
 
       if (nearbySites && nearbySites.length > 0) {
+        console.log(`✅ تم العثور على ${nearbySites.length} أبراج قريبة`);
+
+        // طباعة تفاصيل كل برج
+        nearbySites.forEach((nearbySite, index) => {
+          console.log(`📌 البرج ${index + 1}:`, {
+            name: nearbySite.site_name,
+            id: nearbySite.site_id,
+            technology: nearbySite.technology,
+            distance: nearbySite.distance?.toFixed(2) + " كم",
+            city: nearbySite.city,
+          });
+        });
+
         // مسح الأبراج القريبة السابقة
         clearNearbySites();
 
-        // Add nearby sites to map
+        // إضافة الأبراج الجديدة للخريطة
         addNearbySitesToMap(nearbySites, siteType);
 
+        // تحديث حالة العرض
         if (siteType === "asia") {
           setNearbyAsiaVisible(true);
+          setNearbyAsiaCount(nearbySites.length);
           setNearbyZainVisible(false);
+          setNearbyZainCount(0);
+          console.log(
+            `🟢 تم تفعيل عرض أبراج آسيا (${nearbySites.length} أبراج)`
+          );
         } else {
           setNearbyZainVisible(true);
+          setNearbyZainCount(nearbySites.length);
           setNearbyAsiaVisible(false);
+          setNearbyAsiaCount(0);
+          console.log(
+            `🔵 تم تفعيل عرض أبراج زين (${nearbySites.length} أبراج)`
+          );
         }
+
+        // عرض رسالة نجاح مع التفاصيل
+        const message =
+          `تم العثور على ${nearbySites.length} برج ${
+            siteType === "asia" ? "آسيا" : "زين"
+          } قريب:\n` +
+          nearbySites
+            .map(
+              (s, i) =>
+                `${i + 1}. ${s.site_name} (${s.distance?.toFixed(1)} كم)`
+            )
+            .join("\n");
+
+        console.log(`🎉 ${message}`);
       } else {
-        alert(
-          `لم يتم العثور على أبراج ${
+        console.warn(
+          `⚠️ لم يتم العثور على أبراج ${
             siteType === "asia" ? "آسيا" : "زين"
           } قريبة`
         );
+        alert(
+          `لم يتم العثور على أبراج ${
+            siteType === "asia" ? "آسيا" : "زين"
+          } قريبة من هذا الموقع`
+        );
       }
     } catch (error) {
-      console.error("Error finding nearby sites:", error);
-      alert("حدث خطأ أثناء البحث عن الأبراج القريبة");
+      console.error("💥 خطأ في البحث عن الأبراج القريبة:", error);
+      alert("حدث خطأ أثناء البحث عن الأبراج القريبة. يرجى المحاولة مرة أخرى.");
     } finally {
       setLoading(false);
+      console.log("🔄 انتهت عملية البحث");
     }
   };
 
-  // Add nearby sites to map - مصحح لعرض أقرب برجين
+  // Add nearby sites to map - محسن لعرض أقرب برجين بوضوح
   const addNearbySitesToMap = (nearbySites, siteType) => {
     if (!mapInstanceRef.current || !nearbySites || nearbySites.length === 0) {
-      console.log("لا توجد خريطة أو أبراج لعرضها");
+      console.log("❌ لا توجد خريطة أو أبراج لعرضها");
       return;
     }
 
     const map = mapInstanceRef.current;
-    const color = siteType === "asia" ? "#00ff00" : "#0066ff"; // أخضر لآسيا، أزرق لزين
+    const color = siteType === "asia" ? "#00ff00" : "#0066ff";
     const label = siteType === "asia" ? "آسيا" : "زين";
 
-    console.log(`إضافة ${nearbySites.length} أبراج ${label} إلى الخريطة`);
+    console.log(
+      `📍 بدء إضافة ${nearbySites.length} أبراج ${label} إلى الخريطة`
+    );
 
-    // إضافة كل الأبراج القريبة (حتى لو كان أكثر من 2)
-    nearbySites.forEach((nearbySite, index) => {
-      console.log(
-        `إضافة البرج ${index + 1}: ${
-          nearbySite.site_name
-        } - المسافة: ${nearbySite.distance?.toFixed(2)} كم`
-      );
+    // التأكد من عرض أقرب برجين فقط
+    const sitesToShow = nearbySites.slice(0, 2);
+    console.log(
+      `🎯 سيتم عرض ${sitesToShow.length} برج من أصل ${nearbySites.length}`
+    );
+
+    sitesToShow.forEach((nearbySite, index) => {
+      const siteNumber = index + 1;
+      console.log(`📌 معالجة البرج ${siteNumber}:`, {
+        name: nearbySite.site_name,
+        id: nearbySite.site_id,
+        distance: nearbySite.distance?.toFixed(2) + " كم",
+      });
 
       // حساب المسافة إذا لم تكن موجودة
       const distance =
@@ -235,35 +293,53 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
           nearbySite.coordinates.longitude
         );
 
-      // إنشاء أيقونة البرج القريب
+      // إنشاء أيقونة البرج القريب مع تصميم مميز لكل برج
       const nearbyIcon = L.divIcon({
         html: `
           <div style="
-            background-color: ${color};
-            width: 22px;
-            height: 22px;
+            background: linear-gradient(135deg, ${color}, ${color}dd);
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: 3px solid white;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: bold;
-            animation: nearbyPulse 2s infinite;
-          ">${index + 1}</div>
+            animation: nearbyPulse${siteNumber} 2s infinite;
+            position: relative;
+          ">${siteNumber}</div>
+          
+          <div style="
+            position: absolute;
+            top: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: ${color};
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            border: 1px solid white;
+          ">${label} ${siteNumber}</div>
+          
           <style>
-            @keyframes nearbyPulse {
-              0% { transform: scale(1); }
-              50% { transform: scale(1.1); }
-              100% { transform: scale(1); }
+            @keyframes nearbyPulse${siteNumber} {
+              0% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.2); opacity: 0.8; }
+              100% { transform: scale(1); opacity: 1; }
             }
           </style>
         `,
-        className: `nearby-marker-${siteType}`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        className: `nearby-marker-${siteType}-${siteNumber}`,
+        iconSize: [38, 55],
+        iconAnchor: [19, 19],
       });
 
       const nearbyMarker = L.marker(
@@ -274,34 +350,84 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       // حفظ المارker في المرجع للحذف لاحقاً
       nearbyLayersRef.current.push(nearbyMarker);
 
-      // Popup للبرج القريب
+      // Popup مفصل للبرج القريب
       const popupContent = `
-        <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; min-width: 200px;">
-          <h4 style="margin: 0 0 10px 0; color: ${color}; text-align: center;">
-            🎯 ${label} ${index + 1} - ${nearbySite.site_name}
-          </h4>
-          <div style="line-height: 1.6; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 4px;">
-            <p style="margin: 4px 0;"><strong>🏗️ رقم البرج:</strong> ${
-              nearbySite.site_id
-            }</p>
-            <p style="margin: 4px 0;"><strong>⚡ التقنية:</strong> 
-              <span style="background: ${color}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">
-                ${nearbySite.technology}
-              </span>
-            </p>
-            <p style="margin: 4px 0;"><strong>📏 المسافة:</strong> ${distance.toFixed(
-              2
-            )} كم</p>
-            <p style="margin: 4px 0;"><strong>🏙️ المدينة:</strong> ${
-              nearbySite.city
-            }</p>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; text-align: right; min-width: 250px;">
+          <h3 style="
+            margin: 0 0 12px 0; 
+            color: ${color}; 
+            text-align: center; 
+            border-bottom: 3px solid ${color}; 
+            padding-bottom: 8px;
+            background: linear-gradient(135deg, ${color}22, ${color}11);
+            padding: 8px;
+            border-radius: 6px 6px 0 0;
+            margin: -12px -12px 12px -12px;
+          ">
+            🎯 ${label} ${siteNumber} - ${nearbySite.site_name}
+          </h3>
+          
+          <div style="line-height: 1.8; padding: 0;">
+            <div style="background: #f8f9fa; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+              <p style="margin: 0; font-weight: bold; color: #333;">
+                🏗️ رقم البرج: <span style="color: ${color};">${
+        nearbySite.site_id
+      }</span>
+              </p>
+            </div>
+            
+            <div style="background: #e9ecef; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+              <p style="margin: 0;">
+                <strong>⚡ التقنية:</strong> 
+                <span style="
+                  background: ${color}; 
+                  color: white; 
+                  padding: 3px 8px; 
+                  border-radius: 4px; 
+                  font-size: 12px; 
+                  font-weight: bold;
+                  margin-right: 5px;
+                ">${nearbySite.technology}</span>
+              </p>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+              <p style="margin: 0;">
+                <strong>📏 المسافة:</strong> 
+                <span style="
+                  background: #ff6b35; 
+                  color: white; 
+                  padding: 3px 8px; 
+                  border-radius: 4px; 
+                  font-weight: bold;
+                  margin-right: 5px;
+                ">${distance.toFixed(2)} كم</span>
+              </p>
+            </div>
+            
+            <div style="background: #d1ecf1; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+              <p style="margin: 0;"><strong>🏙️ المدينة:</strong> ${
+                nearbySite.city
+              }</p>
+            </div>
+            
+            <div style="background: ${color}22; padding: 8px; border-radius: 4px; text-align: center;">
+              <strong style="color: ${color};">🏆 الترتيب: البرج رقم ${siteNumber} ${
+        siteNumber === 1 ? "(الأقرب)" : "(الثاني)"
+      }</strong>
+            </div>
           </div>
         </div>
       `;
 
-      nearbyMarker.bindPopup(popupContent, { maxWidth: 300 });
+      nearbyMarker.bindPopup(popupContent, {
+        maxWidth: 350,
+        closeButton: true,
+        autoClose: false,
+        closeOnClick: false,
+      });
 
-      // رسم خط اتصال للبرج القريب
+      // رسم خط اتصال للبرج القريب مع تأثيرات مختلفة
       const connectionLine = L.polyline(
         [
           [site.coordinates.latitude, site.coordinates.longitude],
@@ -309,9 +435,9 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
         ],
         {
           color: color,
-          weight: 3,
-          opacity: 0.8,
-          dashArray: "10, 10",
+          weight: siteNumber === 1 ? 5 : 4, // خط أسمك للبرج الأقرب
+          opacity: siteNumber === 1 ? 0.9 : 0.7,
+          dashArray: siteNumber === 1 ? "15, 5" : "8, 12", // أنماط مختلفة
         }
       ).addTo(map);
 
@@ -327,34 +453,57 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
       const distanceLabel = L.marker(midPoint, {
         icon: L.divIcon({
           html: `<div style="
-            background: white; 
+            background: linear-gradient(135deg, white, #f8f9fa); 
             color: ${color}; 
-            padding: 3px 8px; 
-            border-radius: 4px; 
-            font-size: 11px; 
+            padding: 6px 10px; 
+            border-radius: 8px; 
+            font-size: 12px; 
             font-weight: bold;
             border: 2px solid ${color};
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             white-space: nowrap;
-          ">${distance.toFixed(1)} كم</div>`,
-          className: `distance-label-${siteType}`,
-          iconSize: [50, 20],
-          iconAnchor: [25, 10],
+            text-align: center;
+          ">
+            <div style="font-size: 10px; opacity: 0.8;">${label} ${siteNumber}</div>
+            <div style="font-size: 13px; font-weight: bold;">${distance.toFixed(
+              1
+            )} كم</div>
+            ${
+              siteNumber === 1
+                ? '<div style="font-size: 8px; color: #ff6b35;">الأقرب</div>'
+                : ""
+            }
+          </div>`,
+          className: `distance-label-${siteType}-${siteNumber}`,
+          iconSize: [70, 35],
+          iconAnchor: [35, 17],
         }),
       }).addTo(map);
 
       // حفظ تسمية المسافة في المرجع للحذف لاحقاً
       nearbyLayersRef.current.push(distanceLabel);
+
+      console.log(
+        `✅ تم إضافة البرج ${siteNumber} بنجاح: ${nearbySite.site_name}`
+      );
     });
 
     console.log(
-      `تم إضافة ${nearbySites.length} أبراج ${label} بنجاح إلى الخريطة`
+      `🎉 تم إضافة جميع الأبراج (${sitesToShow.length}) بنجاح إلى الخريطة`
     );
+
+    // التكبير لإظهار جميع الأبراج
+    if (sitesToShow.length > 0) {
+      const group = new L.featureGroup([
+        ...nearbyLayersRef.current.filter((layer) => layer instanceof L.Marker),
+      ]);
+      map.fitBounds(group.getBounds().pad(0.1));
+    }
   };
 
   // Calculate distance between two points
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -367,14 +516,13 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
     return R * c;
   };
 
-  // Clear nearby sites - مُحسن لحذف جميع الطبقات
+  // Clear nearby sites - محسن لحذف جميع الطبقات
   const clearNearbySites = () => {
     if (mapInstanceRef.current && nearbyLayersRef.current.length > 0) {
       console.log(
-        `حذف ${nearbyLayersRef.current.length} طبقة من الأبراج القريبة`
+        `🧹 حذف ${nearbyLayersRef.current.length} طبقة من الأبراج القريبة`
       );
 
-      // حذف جميع الطبقات المحفوظة
       nearbyLayersRef.current.forEach((layer) => {
         try {
           mapInstanceRef.current.removeLayer(layer);
@@ -383,13 +531,14 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
         }
       });
 
-      // تنظيف المرجع
       nearbyLayersRef.current = [];
     }
 
     setNearbyAsiaVisible(false);
     setNearbyZainVisible(false);
-    console.log("تم مسح جميع الأبراج القريبة من الخريطة");
+    setNearbyAsiaCount(0);
+    setNearbyZainCount(0);
+    console.log("✅ تم مسح جميع الأبراج القريبة من الخريطة");
   };
 
   // Initialize map
@@ -564,8 +713,34 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} /> : <NearbyIcon />}
           size="small"
+          sx={{
+            minWidth: 160,
+            position: "relative",
+            "&::after":
+              nearbyAsiaVisible && nearbyAsiaCount > 0
+                ? {
+                    content: `"${nearbyAsiaCount}"`,
+                    position: "absolute",
+                    top: -8,
+                    right: -8,
+                    background: "#ff4444",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: 20,
+                    height: 20,
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "2px solid white",
+                  }
+                : {},
+          }}
         >
-          {nearbyAsiaVisible ? "إخفاء آسيا" : "أقرب برجين آسيا"}
+          {nearbyAsiaVisible
+            ? `إخفاء آسيا (${nearbyAsiaCount})`
+            : "أقرب برجين آسيا"}
         </Button>
 
         <Button
@@ -577,8 +752,34 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} /> : <NearbyIcon />}
           size="small"
+          sx={{
+            minWidth: 160,
+            position: "relative",
+            "&::after":
+              nearbyZainVisible && nearbyZainCount > 0
+                ? {
+                    content: `"${nearbyZainCount}"`,
+                    position: "absolute",
+                    top: -8,
+                    right: -8,
+                    background: "#ff4444",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: 20,
+                    height: 20,
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: "2px solid white",
+                  }
+                : {},
+          }}
         >
-          {nearbyZainVisible ? "إخفاء زين" : "أقرب برجين زين"}
+          {nearbyZainVisible
+            ? `إخفاء زين (${nearbyZainCount})`
+            : "أقرب برجين زين"}
         </Button>
 
         <Button
@@ -596,19 +797,37 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
             color="warning"
             onClick={clearNearbySites}
             size="small"
+            startIcon={<VisibilityOffIcon />}
           >
             مسح الكل
           </Button>
         )}
       </Box>
 
-      {/* Loading indicator */}
+      {/* Enhanced Loading indicator */}
       {loading && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <CircularProgress size={20} />
-            <Typography variant="body2">
-              جاري البحث عن الأبراج القريبة...
+            <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+              🔍 جاري البحث عن أقرب برجين... يرجى الانتظار
+            </Typography>
+          </Box>
+        </Alert>
+      )}
+
+      {/* Success indicator when sites are found */}
+      {(nearbyAsiaVisible || nearbyZainVisible) && !loading && (
+        <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+              ✅ تم عرض{" "}
+              {nearbyAsiaVisible
+                ? `${nearbyAsiaCount} برج آسيا`
+                : `${nearbyZainCount} برج زين`}{" "}
+              على الخريطة
+              {(nearbyAsiaCount === 2 || nearbyZainCount === 2) &&
+                " (أقرب برجين)"}
             </Typography>
           </Box>
         </Alert>
