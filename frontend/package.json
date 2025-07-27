@@ -1,26 +1,19 @@
 {
-  "name": "multi-tool-web-app",
-  "version": "0.1.0",
+  "name": "telecom-ops-frontend",
+  "version": "1.0.0",
   "private": true,
-  "proxy": "http://localhost:8000",
   "dependencies": {
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@mui/icons-material": "^5.14.3",
+    "@mui/icons-material": "^5.16.7",
     "@mui/material": "^5.16.7",
-    "@mui/x-date-pickers": "^7.22.2",
+    "@mui/x-charts": "^7.22.2",
     "axios": "^1.7.7",
-    "cytoscape": "^3.32.0",
-    "cytoscape-cose-bilkent": "^4.1.0",
-    "cytoscape-fcose": "^2.2.0",
-    "d3": "^7.9.0",
-    "date-fns": "^4.1.0",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-force-graph-2d": "^1.27.1",
     "react-leaflet": "^3.2.5",
-    "react-router-dom": "^6.15.0",
+    "react-router-dom": "^6.26.1",
     "react-scripts": "5.0.1",
     "recharts": "^2.13.0",
     "xlsx": "^0.18.5"
@@ -48,5 +41,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://localhost:8000"
 }
