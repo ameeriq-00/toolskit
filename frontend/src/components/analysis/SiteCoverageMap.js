@@ -572,14 +572,61 @@ const SiteCoverageMap = ({ site, height = "500px", onFindNearby }) => {
 
       mapInstanceRef.current = map;
 
-      // Satellite tile layer
-      L.tileLayer(
+      // === ✅ الكود الجديد للخرائط مع التسميات ===
+
+      // 1. طبقة الصور الجوية
+      const satelliteLayer = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
           attribution: "Tiles &copy; Esri",
           maxZoom: 18,
         }
-      ).addTo(map);
+      );
+
+      // 2. طبقة التسميات الشفافة
+      const labelsLayer = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}@2x.png",
+        {
+          attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+          maxZoom: 18,
+          opacity: 0.85,
+          zIndex: 1000, // للتأكد من ظهورها فوق الصور الجوية
+        }
+      );
+
+      // 3. طبقة خريطة الشوارع (بديلة)
+      const streetLayer = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          maxZoom: 18,
+        }
+      );
+
+      // 4. تعريف الطبقات للتحكم
+      const baseLayers = {
+        "🛰️ صور جوية": satelliteLayer,
+        "🗺️ خريطة الشوارع": streetLayer,
+      };
+
+      const overlayLayers = {
+        "🏷️ أسماء الأماكن والشوارع": labelsLayer,
+      };
+
+      // 5. إضافة الطبقات الافتراضية
+      satelliteLayer.addTo(map);
+      labelsLayer.addTo(map);
+
+      // 6. إضافة أداة التحكم في الطبقات
+      L.control
+        .layers(baseLayers, overlayLayers, {
+          position: "topleft",
+          collapsed: true,
+        })
+        .addTo(map);
+
+      // === نهاية الكود الجديد ===
 
       // Create tower icon (red military style)
       const towerIcon = L.divIcon({
