@@ -12,27 +12,25 @@ import {
   TextField,
   Box,
   IconButton,
-  Tooltip,
+  InputAdornment,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  Clear as ClearIcon,
-  GetApp as ExportIcon,
-} from "@mui/icons-material";
+import { Search, Clear, GetApp } from "@mui/icons-material";
 
 const DataTable = ({ data, title = "البيانات" }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 10 : 25);
   const [searchTerm, setSearchTerm] = useState("");
 
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  if (!data?.length) {
     return (
       <Paper sx={{ p: 3, textAlign: "center" }}>
         <Typography variant="h6" color="text.secondary">
           لا توجد بيانات متاحة
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          لم يتم العثور على أي سجلات للعرض
         </Typography>
       </Paper>
     );
@@ -40,37 +38,18 @@ const DataTable = ({ data, title = "البيانات" }) => {
 
   const columns = Object.keys(data[0]);
 
-  // Filter data based on search term
+  // فلترة البيانات
   const filteredData = data.filter((row) =>
     Object.values(row).some((value) =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
-  // Paginated data
+  // البيانات المقسمة
   const paginatedData = filteredData.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
-
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-    setPage(0);
-  };
-
-  const clearSearch = () => {
-    setSearchTerm("");
-    setPage(0);
-  };
 
   const exportToCSV = () => {
     if (!filteredData.length) return;
@@ -87,87 +66,89 @@ const DataTable = ({ data, title = "البيانات" }) => {
     const csvContent = `${headers}\n${rows}`;
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
 
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `${title.replace(/\s+/g, "_")}_${
-          new Date().toISOString().split("T")[0]
-        }.csv`
-      );
-      link.style.visibility = "hidden";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `${title.replace(/\s+/g, "_")}_${
+        new Date().toISOString().split("T")[0]
+      }.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <Paper sx={{ width: "100%" }}>
-      {/* Header with Search and Export */}
+      {/* الرأس والبحث */}
       <Box
         sx={{
           p: 2,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 2,
         }}
       >
         <Typography variant="h6">{title}</Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {/* Search */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <TextField
-              size="small"
-              placeholder="البحث في البيانات..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              sx={{ minWidth: 200 }}
-              InputProps={{
-                startAdornment: (
-                  <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
-                ),
-              }}
-            />
-            {searchTerm && (
-              <IconButton onClick={clearSearch} size="small" sx={{ ml: 1 }}>
-                <ClearIcon />
-              </IconButton>
-            )}
-          </Box>
+          <TextField
+            size="small"
+            placeholder="البحث..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
+            sx={{ minWidth: isMobile ? 150 : 200 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton size="small" onClick={() => setSearchTerm("")}>
+                    <Clear />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
 
-          {/* Export Button */}
-          <Tooltip title="تصدير إلى CSV">
-            <IconButton onClick={exportToCSV} color="primary">
-              <ExportIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            onClick={exportToCSV}
+            color="primary"
+            title="تصدير إلى CSV"
+          >
+            <GetApp />
+          </IconButton>
         </Box>
       </Box>
 
-      {/* Results Info */}
+      {/* معلومات النتائج */}
       <Box sx={{ px: 2, pb: 1 }}>
         <Typography variant="caption" color="text.secondary">
           عرض {filteredData.length} من أصل {data.length} سجل
-          {searchTerm && ` (مفلتر)`}
+          {searchTerm && " (مفلتر)"}
         </Typography>
       </Box>
 
-      {/* Table */}
-      <TableContainer sx={{ maxHeight: 600 }}>
-        <Table stickyHeader>
+      {/* الجدول */}
+      <TableContainer sx={{ maxHeight: isMobile ? 400 : 600 }}>
+        <Table stickyHeader size={isMobile ? "small" : "medium"}>
           <TableHead>
             <TableRow>
               {columns.map((column) => (
                 <TableCell
                   key={column}
-                  sx={{
-                    fontWeight: "bold",
-                    whiteSpace: "nowrap",
-                  }}
+                  sx={{ fontWeight: "bold", whiteSpace: "nowrap" }}
                 >
                   {column}
                 </TableCell>
@@ -176,20 +157,12 @@ const DataTable = ({ data, title = "البيانات" }) => {
           </TableHead>
           <TableBody>
             {paginatedData.map((row, index) => (
-              <TableRow
-                key={index}
-                hover
-                sx={{
-                  "&:nth-of-type(odd)": {
-                    backgroundColor: "action.hover",
-                  },
-                }}
-              >
+              <TableRow key={index} hover>
                 {columns.map((column) => (
                   <TableCell
                     key={column}
                     sx={{
-                      maxWidth: 200,
+                      maxWidth: isMobile ? 100 : 200,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -205,23 +178,23 @@ const DataTable = ({ data, title = "البيانات" }) => {
         </Table>
       </TableContainer>
 
-      {/* Pagination */}
+      {/* التقسيم */}
       <TablePagination
-        rowsPerPageOptions={[10, 25, 50, 100]}
+        rowsPerPageOptions={isMobile ? [10, 25] : [10, 25, 50, 100]}
         component="div"
         count={filteredData.length}
         rowsPerPage={rowsPerPage}
         page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-        labelRowsPerPage="عدد الصفوف في الصفحة:"
+        onPageChange={(e, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+        labelRowsPerPage="عدد الصفوف:"
         labelDisplayedRows={({ from, to, count }) =>
           `${from}-${to} من ${count !== -1 ? count : `أكثر من ${to}`}`
         }
-        sx={{
-          borderTop: "1px solid",
-          borderColor: "divider",
-        }}
+        sx={{ borderTop: "1px solid", borderColor: "divider" }}
       />
     </Paper>
   );

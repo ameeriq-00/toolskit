@@ -1,5 +1,11 @@
 import React from "react";
-import { Box, CssBaseline, Toolbar } from "@mui/material";
+import {
+  Box,
+  CssBaseline,
+  Toolbar,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
@@ -7,40 +13,32 @@ import { APP_CONFIG } from "../../utils/constants";
 
 const MainLayout = ({ children }) => {
   const { user } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  if (!user) {
-    return null; // This will be handled by the route protection
-  }
+  if (!user) return null;
+
+  const drawerWidth = isMobile ? 0 : APP_CONFIG.DRAWER_WIDTH;
 
   return (
     <Box sx={{ display: "flex", direction: "rtl" }}>
       <CssBaseline />
-
-      {/* Top Bar */}
       <TopBar />
+      {!isMobile && <Sidebar />}
 
-      {/* Sidebar */}
-      <Sidebar open={true} />
-
-      {/* Main Content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: `calc(100% - ${APP_CONFIG.DRAWER_WIDTH}px)`,
+          p: isMobile ? 1 : 3,
+          width: `calc(100% - ${drawerWidth}px)`,
           minHeight: "100vh",
           backgroundColor: "background.default",
-          direction: "ltr", // Content direction
-          marginRight: 0, // إزالة أي margin من الجانب الأيمن
-          marginLeft: 0, // إزالة أي margin من الجانب الأيسر
+          direction: "ltr",
         }}
       >
-        {/* Toolbar spacer */}
         <Toolbar />
-
-        {/* Page Content */}
-        <Box sx={{ mt: 2 }}>{children}</Box>
+        <Box sx={{ mt: isMobile ? 1 : 2 }}>{children}</Box>
       </Box>
     </Box>
   );

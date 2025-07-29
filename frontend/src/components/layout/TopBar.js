@@ -5,37 +5,41 @@ import {
   Typography,
   IconButton,
   Badge,
-  Avatar,
   Menu,
   MenuItem,
   Box,
-  Tooltip,
   Chip,
+  Avatar,
+  useTheme,
+  useMediaQuery,
+  Drawer,
 } from "@mui/material";
 import {
-  Notifications as NotificationsIcon,
-  AccountCircle as AccountIcon,
-  Logout as LogoutIcon,
-  Settings as SettingsIcon,
-  DarkMode as DarkModeIcon,
+  Notifications,
+  AccountCircle,
+  Logout,
+  Settings,
+  DarkMode,
+  Menu as MenuIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { APP_CONFIG } from "../../utils/constants";
+import Sidebar from "./Sidebar";
 
 const TopBar = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, getFullName, getRoleName } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [anchorEl, setAnchorEl] = useState(null);
-  const [notificationsCount] = useState(3); // Mock notifications
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationsCount] = useState(3);
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleLogout = () => {
     logout();
@@ -49,152 +53,156 @@ const TopBar = () => {
   };
 
   return (
-    <AppBar
-      position="fixed"
-      sx={{
-        width: `calc(100% - ${APP_CONFIG.DRAWER_WIDTH}px)`,
-        mr: `${APP_CONFIG.DRAWER_WIDTH}px`, // تغيير من ml إلى mr للجانب الأيمن
-        background: "linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 100%)",
-        borderBottom: "2px solid #00ff88",
-        boxShadow: "0 2px 20px rgba(0, 255, 136, 0.3)",
-        zIndex: 1100, // أقل من الـ sidebar
-      }}
-    >
-      <Toolbar>
-        {/* Current Page Title */}
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          منصة راصد للتحليل المتقدم
-        </Typography>
+    <>
+      <AppBar
+        position="fixed"
+        sx={{
+          width: isMobile
+            ? "100%"
+            : `calc(100% - ${APP_CONFIG.DRAWER_WIDTH}px)`,
+          mr: isMobile ? 0 : `${APP_CONFIG.DRAWER_WIDTH}px`,
+          zIndex: theme.zIndex.drawer + 1,
+        }}
+      >
+        <Toolbar>
+          {/* قائمة الهاتف */}
+          {isMobile && (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
 
-        {/* System Status */}
-        <Chip
-          label="النظام متصل"
-          color="success"
-          size="small"
-          sx={{ mr: 2, fontSize: "0.7rem" }}
-        />
+          {/* العنوان */}
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            منصة راصد للتحليل المتقدم
+          </Typography>
 
-        {/* Dark Mode Indicator */}
-        <Tooltip title="الوضع المظلم">
+          {/* حالة النظام */}
+          <Chip
+            label="النظام متصل"
+            color="success"
+            size="small"
+            sx={{ mr: 2, display: { xs: "none", sm: "flex" } }}
+          />
+
+          {/* أيقونة الوضع المظلم */}
           <IconButton color="inherit" sx={{ mr: 1 }}>
-            <DarkModeIcon />
+            <DarkMode />
           </IconButton>
-        </Tooltip>
 
-        {/* Notifications */}
-        <Tooltip title="الإشعارات">
+          {/* الإشعارات */}
           <IconButton color="inherit" sx={{ mr: 1 }}>
             <Badge badgeContent={notificationsCount} color="error">
-              <NotificationsIcon />
+              <Notifications />
             </Badge>
           </IconButton>
-        </Tooltip>
 
-        {/* User Menu */}
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Typography
-            variant="body2"
-            sx={{
-              mr: 1,
-              display: { xs: "none", sm: "block" },
-              color: "primary.main",
-              fontWeight: "bold",
-            }}
-          >
-            {user?.username || "المستخدم"}
-          </Typography>
-          <Tooltip title="حساب المستخدم">
-            <IconButton
-              onClick={handleMenuOpen}
-              color="inherit"
-              sx={{
-                p: 0.5,
-                border: "2px solid transparent",
-                borderRadius: "50%",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  borderColor: "primary.main",
-                  boxShadow: "0 0 12px rgba(0, 255, 136, 0.5)",
-                },
-              }}
-            >
+          {/* قائمة المستخدم */}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            {!isMobile && (
+              <Typography
+                variant="body2"
+                sx={{ mr: 1, color: "primary.main", fontWeight: "bold" }}
+              >
+                {getFullName()}
+              </Typography>
+            )}
+
+            <IconButton onClick={handleMenuOpen} sx={{ p: 0.5 }}>
               <Avatar
                 sx={{
                   width: 36,
                   height: 36,
                   bgcolor: "primary.main",
                   color: "primary.contrastText",
-                  fontSize: "1rem",
                   fontWeight: "bold",
-                  border: "2px solid #fff",
                 }}
               >
-                {user?.username?.charAt(0).toUpperCase() || "ر"}
+                {getFullName().charAt(0) || "ر"}
               </Avatar>
             </IconButton>
-          </Tooltip>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* قائمة المستخدم */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1.5,
+            minWidth: 200,
+            background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
+            border: "1px solid rgba(0, 255, 136, 0.3)",
+            borderRadius: 2,
+          },
+        }}
+      >
+        {/* معلومات المستخدم */}
+        <Box
+          sx={{
+            px: 2,
+            py: 1,
+            borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
+          }}
+        >
+          <Typography
+            variant="subtitle2"
+            color="primary"
+            sx={{ fontWeight: "bold" }}
+          >
+            {getFullName()}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {user?.email || "user@rased.com"}
+          </Typography>
+          <br />
+          <Chip
+            label={getRoleName()}
+            size="small"
+            color={user?.is_staff ? "error" : "success"}
+            sx={{ mt: 0.5, fontSize: "0.65rem" }}
+          />
         </Box>
 
-        {/* User Menu Dropdown */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: {
-              mt: 1.5,
-              minWidth: 200,
-              background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
-              border: "1px solid rgba(0, 255, 136, 0.3)",
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(0, 255, 136, 0.2)",
+        {/* عناصر القائمة */}
+        <MenuItem onClick={handleSettings} sx={{ py: 1.5 }}>
+          <Settings sx={{ mr: 2, color: "primary.main" }} />
+          الإعدادات
+        </MenuItem>
+
+        <MenuItem onClick={handleLogout} sx={{ py: 1.5, color: "error.main" }}>
+          <Logout sx={{ mr: 2 }} />
+          تسجيل الخروج
+        </MenuItem>
+      </Menu>
+
+      {/* درج الهاتف */}
+      {isMobile && (
+        <Drawer
+          variant="temporary"
+          anchor="right"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: APP_CONFIG.DRAWER_WIDTH,
+              boxSizing: "border-box",
             },
           }}
-          transformOrigin={{ horizontal: "right", vertical: "top" }}
-          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
         >
-          {/* User Info */}
-          <Box
-            sx={{
-              px: 2,
-              py: 1,
-              borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              color="primary"
-              sx={{ fontWeight: "bold" }}
-            >
-              {user?.username || "المستخدم"}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {user?.email || "user@rased.com"}
-            </Typography>
-            <br />
-            <Chip
-              label={user?.is_staff ? "مدير النظام" : "مستخدم"}
-              size="small"
-              color={user?.is_staff ? "error" : "success"}
-              sx={{ mt: 0.5, fontSize: "0.65rem" }}
-            />
-          </Box>
-
-          {/* Menu Items */}
-          <MenuItem onClick={handleSettings} sx={{ py: 1.5 }}>
-            <SettingsIcon sx={{ mr: 2, color: "primary.main" }} />
-            <Typography>الإعدادات</Typography>
-          </MenuItem>
-          <MenuItem
-            onClick={handleLogout}
-            sx={{ py: 1.5, color: "error.main" }}
-          >
-            <LogoutIcon sx={{ mr: 2 }} />
-            <Typography>تسجيل الخروج</Typography>
-          </MenuItem>
-        </Menu>
-      </Toolbar>
-    </AppBar>
+          <Sidebar onClose={handleDrawerToggle} />
+        </Drawer>
+      )}
+    </>
   );
 };
 

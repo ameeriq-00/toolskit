@@ -20,7 +20,7 @@ const ProtectedRoute = ({
   } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking authentication
+  // شاشة التحميل
   if (loading) {
     return (
       <Box
@@ -34,34 +34,34 @@ const ProtectedRoute = ({
         }}
       >
         <CircularProgress size={40} />
-        <Box sx={{ textAlign: "center" }}>جاري التحقق من الصلاحيات...</Box>
+        <Box>جاري التحقق من الصلاحيات...</Box>
       </Box>
     );
   }
 
-  // Redirect to login if not authenticated
+  // إعادة توجيه لتسجيل الدخول
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if admin access is required
+  // فحص صلاحيات المدير
   if (adminOnly && !isAdmin()) {
     return (
-      <Box sx={{ padding: 3, textAlign: "center" }}>
+      <Box sx={{ p: 3, textAlign: "center" }}>
         <Alert severity="error">هذه الصفحة متاحة للمديرين فقط</Alert>
       </Box>
     );
   }
 
-  // Check permissions if specified
+  // فحص الصلاحيات المطلوبة
   if (requiredPermissions.length > 0) {
-    const hasRequiredPermissions = requireAny
+    const hasRequired = requireAny
       ? hasAnyPermission(...requiredPermissions)
       : hasAllPermissions(...requiredPermissions);
 
-    if (!hasRequiredPermissions) {
+    if (!hasRequired) {
       return (
-        <Box sx={{ padding: 3, textAlign: "center" }}>
+        <Box sx={{ p: 3, textAlign: "center" }}>
           <Alert severity="warning">
             ليس لديك الصلاحيات المطلوبة للوصول إلى هذه الصفحة
             <br />
@@ -75,7 +75,7 @@ const ProtectedRoute = ({
     }
   }
 
-  // Check if password change is required (except for certain routes)
+  // فحص تغيير كلمة المرور
   const passwordChangeExemptRoutes = [
     "/my-security",
     "/change-password",
@@ -87,7 +87,7 @@ const ProtectedRoute = ({
 
   if (needsPasswordChange() && !isExemptRoute) {
     return (
-      <Box sx={{ padding: 3, textAlign: "center" }}>
+      <Box sx={{ p: 3, textAlign: "center" }}>
         <Alert
           severity="warning"
           action={
@@ -106,29 +106,29 @@ const ProtectedRoute = ({
     );
   }
 
-  // Account status checks
+  // فحص حالة الحساب
   if (user.profile) {
     const profile = user.profile;
 
-    // Check if account is locked
+    // حساب مقفل
     if (profile.is_account_locked) {
       return (
-        <Box sx={{ padding: 3, textAlign: "center" }}>
+        <Box sx={{ p: 3, textAlign: "center" }}>
           <Alert severity="error">
-            حسابك مقفل مؤقتاً. يرجى المحاولة لاحقاً أو التواصل مع الإدارة
+            حسابك مقفل مؤقتاً. يرجى التواصل مع الإدارة
           </Alert>
         </Box>
       );
     }
 
-    // Check if account is expired
+    // حساب منتهي الصلاحية
     if (profile.account_expires_at) {
       const expiryDate = new Date(profile.account_expires_at);
       const now = new Date();
 
       if (now > expiryDate) {
         return (
-          <Box sx={{ padding: 3, textAlign: "center" }}>
+          <Box sx={{ p: 3, textAlign: "center" }}>
             <Alert severity="error">
               انتهت صلاحية حسابك. يرجى التواصل مع الإدارة
             </Alert>
@@ -136,15 +136,14 @@ const ProtectedRoute = ({
         );
       }
 
-      // Show warning if account expires soon (within 7 days)
+      // تحذير انتهاء الصلاحية قريباً
       const daysUntilExpiry = Math.ceil(
         (expiryDate - now) / (1000 * 60 * 60 * 24)
       );
       if (daysUntilExpiry <= 7 && location.pathname === "/") {
-        // Show warning only on dashboard
         return (
           <Box>
-            <Alert severity="warning" sx={{ margin: 2 }}>
+            <Alert severity="warning" sx={{ m: 2 }}>
               تنبيه: سينتهي حسابك خلال {daysUntilExpiry} أيام
             </Alert>
             {children}
@@ -154,7 +153,6 @@ const ProtectedRoute = ({
     }
   }
 
-  // All checks passed, render the protected content
   return children;
 };
 

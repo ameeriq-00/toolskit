@@ -7,32 +7,29 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Chip,
-  LinearProgress,
   Button,
-  Paper,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider,
   IconButton,
-  Tooltip,
+  Chip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
-  People as PeopleIcon,
-  Security as SecurityIcon,
-  Analytics as AnalyticsIcon,
-  CellTower as TowerIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckIcon,
-  Error as ErrorIcon,
-  Timeline as TimelineIcon,
-  Refresh as RefreshIcon,
-  AdminPanelSettings as AdminIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
-  Block as BlockIcon,
+  People,
+  Security,
+  Analytics,
+  Warning,
+  CheckCircle,
+  Timeline,
+  Refresh,
+  Login,
+  Logout,
+  Block,
+  AdminPanelSettings,
+  CellTower,
 } from "@mui/icons-material";
 import { useAuth } from "../../contexts/AuthContext";
 import apiService from "../../services/api";
@@ -49,6 +46,9 @@ const Dashboard = () => {
     refreshSecurityInfo,
   } = useAuth();
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [stats, setStats] = useState({
     users: { total: 0, active: 0, locked: 0 },
     activities: { today: 0, week: 0, failed_logins_today: 0 },
@@ -62,8 +62,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadDashboardData();
-
-    // Auto-refresh every 2 minutes
     const interval = setInterval(loadDashboardData, 2 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -72,15 +70,15 @@ const Dashboard = () => {
     try {
       setLoading(true);
 
-      // Load statistics (available to all users)
+      // تحميل الإحصائيات
       const statsResponse = await apiService.getDashboardStatistics();
       setStats(statsResponse.data);
 
-      // Load user's own activities
+      // تحميل الأنشطة
       const activitiesResponse = await apiService.getMyActivities(10);
       setRecentActivities(activitiesResponse.data.activities || []);
 
-      // Load security alerts if user has permission
+      // تحميل التنبيهات الأمنية
       if (canViewSecurity()) {
         try {
           const alertsResponse = await apiService.getSecurityAlerts({
@@ -97,7 +95,6 @@ const Dashboard = () => {
       setError("");
     } catch (error) {
       setError(apiService.formatError(error));
-      console.error("Dashboard load error:", error);
     } finally {
       setLoading(false);
     }
@@ -116,34 +113,41 @@ const Dashboard = () => {
   };
 
   const getActivityIcon = (action) => {
-    switch (action) {
-      case "تسجيل دخول":
-        return <LoginIcon color="success" />;
-      case "تسجيل خروج":
-        return <LogoutIcon color="primary" />;
-      case "محاولة دخول فاشلة":
-        return <ErrorIcon color="error" />;
-      case "قفل حساب":
-        return <BlockIcon color="warning" />;
-      default:
-        return <TimelineIcon color="primary" />;
-    }
+    const icons = {
+      "تسجيل دخول": <Login color="success" />,
+      "تسجيل خروج": <Logout color="primary" />,
+      "محاولة دخول فاشلة": <Warning color="error" />,
+      "قفل حساب": <Block color="warning" />,
+    };
+    return icons[action] || <Timeline color="primary" />;
   };
 
   const getSeverityColor = (severity) => {
-    switch (severity) {
-      case "حرج":
-        return "error";
-      case "عالي":
-        return "error";
-      case "متوسط":
-        return "warning";
-      case "منخفض":
-        return "info";
-      default:
-        return "default";
-    }
+    const colors = {
+      حرج: "error",
+      عالي: "error",
+      متوسط: "warning",
+      منخفض: "info",
+    };
+    return colors[severity] || "default";
   };
+
+  // بطاقات الإحصائيات
+  const StatCard = ({ title, value, icon: Icon, color = "primary" }) => (
+    <Card>
+      <CardContent>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Icon color={color} sx={{ fontSize: 40 }} />
+          <Box>
+            <Typography variant="h4">{value}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {title}
+            </Typography>
+          </Box>
+        </Box>
+      </CardContent>
+    </Card>
+  );
 
   if (loading && !stats.users.total) {
     return (
@@ -161,414 +165,294 @@ const Dashboard = () => {
   }
 
   return (
-    <Box sx={{ padding: 3 }}>
-      {/* Header */}
+    <Box sx={{ p: isMobile ? 1 : 3 }}>
+      {/* الرأس */}
       <Box
         sx={{
-          marginBottom: 3,
+          mb: 3,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
         }}
       >
         <Box>
-          <Typography variant="h4" gutterBottom>
+          <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
             {getWelcomeMessage()}، {getFullName()}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" color="text.secondary">
             {getRoleName()} - آخر تحديث:{" "}
             {lastRefresh.toLocaleTimeString("ar-SA")}
           </Typography>
         </Box>
-        <Tooltip title="تحديث البيانات">
-          <IconButton onClick={handleRefresh} disabled={loading}>
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <IconButton onClick={handleRefresh} disabled={loading}>
+          <Refresh />
+        </IconButton>
       </Box>
 
-      {/* Alerts */}
+      {/* التحذيرات */}
       {error && (
-        <Alert
-          severity="error"
-          sx={{ marginBottom: 2 }}
-          onClose={() => setError("")}
-        >
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
           {error}
         </Alert>
       )}
 
       {needsPasswordChange() && (
-        <Alert severity="warning" sx={{ marginBottom: 2 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
           يجب تغيير كلمة المرور الخاصة بك لأسباب أمنية.
-          <Button color="inherit" size="small" sx={{ marginLeft: 2 }}>
+          <Button color="inherit" size="small" sx={{ ml: 2 }}>
             تغيير الآن
           </Button>
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      <Grid container spacing={3} sx={{ marginBottom: 3 }}>
-        {/* Users Statistics */}
+      {/* بطاقات الإحصائيات */}
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: 3 }}>
         {canManageUsers() && (
           <>
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="h4" color="primary">
-                        {stats.users.total}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        إجمالي المستخدمين
-                      </Typography>
-                    </Box>
-                    <PeopleIcon sx={{ fontSize: 40, color: "primary.main" }} />
-                  </Box>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="إجمالي المستخدمين"
+                value={stats.users.total}
+                icon={People}
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="h4" color="success.main">
-                        {stats.users.active}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        مستخدمين نشطين
-                      </Typography>
-                    </Box>
-                    <CheckIcon sx={{ fontSize: 40, color: "success.main" }} />
-                  </Box>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="مستخدمين نشطين"
+                value={stats.users.active}
+                icon={CheckCircle}
+                color="success"
+              />
             </Grid>
-
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="h4" color="warning.main">
-                        {stats.users.locked}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        حسابات مقفلة
-                      </Typography>
-                    </Box>
-                    <BlockIcon sx={{ fontSize: 40, color: "warning.main" }} />
-                  </Box>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="حسابات مقفلة"
+                value={stats.users.locked}
+                icon={Block}
+                color="warning"
+              />
             </Grid>
           </>
         )}
 
-        {/* Security Statistics */}
         {canViewSecurity() && (
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Box>
-                    <Typography variant="h4" color="error.main">
-                      {stats.security.critical_alerts}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      تنبيهات حرجة
-                    </Typography>
-                  </Box>
-                  <WarningIcon sx={{ fontSize: 40, color: "error.main" }} />
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="تنبيهات حرجة"
+              value={stats.security.critical_alerts}
+              icon={Warning}
+              color="error"
+            />
           </Grid>
         )}
 
-        {/* Activity Statistics */}
         <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Box>
-                  <Typography variant="h4" color="info.main">
-                    {stats.activities.today}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    نشاطات اليوم
-                  </Typography>
-                </Box>
-                <TimelineIcon sx={{ fontSize: 40, color: "info.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="نشاطات اليوم"
+            value={stats.activities.today}
+            icon={Timeline}
+            color="info"
+          />
         </Grid>
 
         <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
-          <Card>
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Box>
-                  <Typography variant="h4" color="secondary.main">
-                    {stats.activities.week}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    نشاطات الأسبوع
-                  </Typography>
-                </Box>
-                <AnalyticsIcon sx={{ fontSize: 40, color: "secondary.main" }} />
-              </Box>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="نشاطات الأسبوع"
+            value={stats.activities.week}
+            icon={Analytics}
+            color="secondary"
+          />
         </Grid>
 
         {stats.activities.failed_logins_today > 0 && (
           <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
-            <Card>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Box>
-                    <Typography variant="h4" color="error.main">
-                      {stats.activities.failed_logins_today}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      محاولات دخول فاشلة اليوم
-                    </Typography>
-                  </Box>
-                  <ErrorIcon sx={{ fontSize: 40, color: "error.main" }} />
-                </Box>
-              </CardContent>
-            </Card>
+            <StatCard
+              title="محاولات دخول فاشلة اليوم"
+              value={stats.activities.failed_logins_today}
+              icon={Warning}
+              color="error"
+            />
           </Grid>
         )}
       </Grid>
 
-      <Grid container spacing={3}>
-        {/* Recent Activities */}
+      <Grid container spacing={isMobile ? 2 : 3}>
+        {/* النشاطات الأخيرة */}
         <Grid item xs={12} md={canViewSecurity() ? 6 : 8}>
-          <Paper sx={{ padding: 2, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              النشاطات الأخيرة
-            </Typography>
-            <Divider sx={{ marginBottom: 2 }} />
-
-            {recentActivities.length === 0 ? (
-              <Box sx={{ textAlign: "center", padding: 4 }}>
-                <Typography color="text.secondary">
-                  لا توجد نشاطات حديثة
-                </Typography>
-              </Box>
-            ) : (
-              <List sx={{ height: 300, overflow: "auto" }}>
-                {recentActivities.map((activity, index) => (
-                  <ListItem key={index} divider>
-                    <ListItemIcon>
-                      {getActivityIcon(activity.action)}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={activity.description}
-                      secondary={
-                        <Box>
-                          <Typography variant="caption" display="block">
-                            {new Date(activity.timestamp).toLocaleString(
-                              "ar-SA"
-                            )}
-                          </Typography>
-                          {activity.ip_address && (
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              IP: {activity.ip_address}
-                            </Typography>
-                          )}
-                        </Box>
-                      }
-                    />
-                    {!activity.success && (
-                      <Chip label="فشل" color="error" size="small" />
-                    )}
-                  </ListItem>
-                ))}
-              </List>
-            )}
-          </Paper>
-        </Grid>
-
-        {/* Security Alerts */}
-        {canViewSecurity() && (
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ padding: 2, height: 400 }}>
+          <Card sx={{ height: 400 }}>
+            <CardContent>
               <Typography variant="h6" gutterBottom>
-                التنبيهات الأمنية
+                النشاطات الأخيرة
               </Typography>
-              <Divider sx={{ marginBottom: 2 }} />
 
-              {securityAlerts.length === 0 ? (
+              {recentActivities.length === 0 ? (
                 <Box sx={{ textAlign: "center", padding: 4 }}>
-                  <CheckIcon
-                    sx={{
-                      fontSize: 48,
-                      color: "success.main",
-                      marginBottom: 2,
-                    }}
-                  />
-                  <Typography color="success.main">
-                    لا توجد تنبيهات أمنية
+                  <Typography color="text.secondary">
+                    لا توجد نشاطات حديثة
                   </Typography>
                 </Box>
               ) : (
                 <List sx={{ height: 300, overflow: "auto" }}>
-                  {securityAlerts.map((alert, index) => (
+                  {recentActivities.map((activity, index) => (
                     <ListItem key={index} divider>
                       <ListItemIcon>
-                        <WarningIcon color={getSeverityColor(alert.severity)} />
+                        {getActivityIcon(activity.action)}
                       </ListItemIcon>
                       <ListItemText
-                        primary={alert.title}
+                        primary={activity.description}
                         secondary={
                           <Box>
-                            <Typography
-                              variant="body2"
-                              sx={{ marginBottom: 0.5 }}
-                            >
-                              {alert.description}
+                            <Typography variant="caption" display="block">
+                              {new Date(activity.timestamp).toLocaleString(
+                                "ar-SA"
+                              )}
                             </Typography>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                gap: 1,
-                                alignItems: "center",
-                              }}
-                            >
-                              <Chip
-                                label={alert.severity}
-                                color={getSeverityColor(alert.severity)}
-                                size="small"
-                              />
-                              <Typography variant="caption">
-                                {new Date(alert.created_at).toLocaleString(
-                                  "ar-SA"
-                                )}
+                            {activity.ip_address && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                IP: {activity.ip_address}
                               </Typography>
-                            </Box>
+                            )}
                           </Box>
                         }
                       />
+                      {!activity.success && (
+                        <Chip label="فشل" color="error" size="small" />
+                      )}
                     </ListItem>
                   ))}
                 </List>
               )}
-            </Paper>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* التنبيهات الأمنية */}
+        {canViewSecurity() && (
+          <Grid item xs={12} md={6}>
+            <Card sx={{ height: 400 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  التنبيهات الأمنية
+                </Typography>
+
+                {securityAlerts.length === 0 ? (
+                  <Box sx={{ textAlign: "center", padding: 4 }}>
+                    <CheckCircle
+                      sx={{ fontSize: 48, color: "success.main", mb: 2 }}
+                    />
+                    <Typography color="success.main">
+                      لا توجد تنبيهات أمنية
+                    </Typography>
+                  </Box>
+                ) : (
+                  <List sx={{ height: 300, overflow: "auto" }}>
+                    {securityAlerts.map((alert, index) => (
+                      <ListItem key={index} divider>
+                        <ListItemIcon>
+                          <Warning color={getSeverityColor(alert.severity)} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={alert.title}
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                                {alert.description}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  gap: 1,
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Chip
+                                  label={alert.severity}
+                                  color={getSeverityColor(alert.severity)}
+                                  size="small"
+                                />
+                                <Typography variant="caption">
+                                  {new Date(alert.created_at).toLocaleString(
+                                    "ar-SA"
+                                  )}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
           </Grid>
         )}
 
-        {/* Quick Actions */}
+        {/* إجراءات سريعة */}
         <Grid item xs={12} md={canViewSecurity() ? 12 : 4}>
-          <Paper sx={{ padding: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              إجراءات سريعة
-            </Typography>
-            <Divider sx={{ marginBottom: 2 }} />
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                إجراءات سريعة
+              </Typography>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<AnalyticsIcon />}
-                  href="/excel-analyzer"
-                >
-                  تحليل Excel
-                </Button>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<TowerIcon />}
-                  href="/site-search"
-                >
-                  بحث الأبراج
-                </Button>
-              </Grid>
-
-              {canManageUsers() && (
-                <Grid item xs={12} sm={6} md={3}>
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={3}>
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<AdminIcon />}
-                    href="/user-management"
+                    startIcon={<Analytics />}
+                    href="/excel-analyzer"
                   >
-                    إدارة المستخدمين
+                    تحليل Excel
                   </Button>
                 </Grid>
-              )}
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<SecurityIcon />}
-                  href="/my-security"
-                >
-                  الأمان الشخصي
-                </Button>
+                <Grid item xs={6} sm={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<CellTower />}
+                    href="/site-search"
+                  >
+                    بحث الأبراج
+                  </Button>
+                </Grid>
+
+                {canManageUsers() && (
+                  <Grid item xs={6} sm={3}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      startIcon={<AdminPanelSettings />}
+                      href="/user-management"
+                    >
+                      إدارة المستخدمين
+                    </Button>
+                  </Grid>
+                )}
+
+                <Grid item xs={6} sm={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<Security />}
+                    href="/my-security"
+                  >
+                    الأمان الشخصي
+                  </Button>
+                </Grid>
               </Grid>
-            </Grid>
-          </Paper>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
-      {/* Loading Indicator */}
+      {/* مؤشر التحميل */}
       {loading && (
         <Box sx={{ position: "fixed", bottom: 20, right: 20 }}>
           <CircularProgress size={24} />
