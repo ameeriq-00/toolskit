@@ -5,338 +5,575 @@ import {
   Card,
   CardContent,
   Typography,
-  LinearProgress,
-  Chip,
-  Button,
+  CircularProgress,
   Alert,
+  Chip,
+  LinearProgress,
+  Button,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import {
-  TrendingUp as TrendingUpIcon,
-  CellTower as TowerIcon,
+  People as PeopleIcon,
+  Security as SecurityIcon,
   Analytics as AnalyticsIcon,
-  Upload as UploadIcon,
+  CellTower as TowerIcon,
+  Warning as WarningIcon,
+  CheckCircle as CheckIcon,
+  Error as ErrorIcon,
   Timeline as TimelineIcon,
+  Refresh as RefreshIcon,
+  AdminPanelSettings as AdminIcon,
+  Login as LoginIcon,
+  Logout as LogoutIcon,
+  Block as BlockIcon,
 } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
-import { useSiteSearch } from "../../hooks/useApi";
-import { TECH_COLORS } from "../../utils/constants";
-
-const StatCard = ({ title, value, icon, color, trend, onClick }) => (
-  <Card
-    sx={{
-      cursor: onClick ? "pointer" : "default",
-      transition: "all 0.3s ease",
-      background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
-      border: "1px solid rgba(0, 255, 136, 0.1)",
-      "&:hover": onClick
-        ? {
-            transform: "translateY(-4px)",
-            boxShadow: "0 12px 40px rgba(0, 255, 136, 0.3)",
-            borderColor: "primary.main",
-          }
-        : {},
-    }}
-    onClick={onClick}
-  >
-    <CardContent>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-        <Box
-          sx={{
-            p: 1,
-            borderRadius: 2,
-            backgroundColor: `${color}.main`,
-            color: `${color}.contrastText`,
-            mr: 2,
-            boxShadow: `0 4px 12px ${
-              color === "primary"
-                ? "rgba(0, 255, 136, 0.3)"
-                : "rgba(255, 255, 255, 0.1)"
-            }`,
-          }}
-        >
-          {icon}
-        </Box>
-        <Typography
-          variant="h6"
-          color="text.secondary"
-          sx={{ fontWeight: 600 }}
-        >
-          {title}
-        </Typography>
-      </Box>
-
-      <Typography
-        variant="h4"
-        sx={{ mb: 1, fontWeight: "bold", color: "primary.main" }}
-      >
-        {value?.toLocaleString() || "0"}
-      </Typography>
-
-      {trend && (
-        <Chip
-          size="small"
-          label={trend}
-          color="success"
-          icon={<TrendingUpIcon sx={{ fontSize: 16 }} />}
-          sx={{ fontSize: "0.7rem" }}
-        />
-      )}
-    </CardContent>
-  </Card>
-);
-
-const QuickActionCard = ({ title, description, icon, color, onClick }) => (
-  <Card
-    sx={{
-      cursor: "pointer",
-      transition: "all 0.3s ease",
-      background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
-      border: "1px solid rgba(0, 255, 136, 0.1)",
-      "&:hover": {
-        transform: "translateY(-4px)",
-        borderColor: `${color}.main`,
-        boxShadow: `0 8px 25px rgba(0, 255, 136, 0.2)`,
-      },
-    }}
-    onClick={onClick}
-  >
-    <CardContent sx={{ textAlign: "center", py: 3 }}>
-      <Box
-        sx={{
-          display: "inline-flex",
-          p: 2,
-          borderRadius: "50%",
-          backgroundColor: `${color}.main`,
-          color: `${color}.contrastText`,
-          mb: 2,
-          boxShadow: `0 4px 16px rgba(0, 255, 136, 0.3)`,
-        }}
-      >
-        {icon}
-      </Box>
-      <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-        {title}
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        {description}
-      </Typography>
-    </CardContent>
-  </Card>
-);
+import { useAuth } from "../../contexts/AuthContext";
+import apiService from "../../services/api";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const { loading, error, getStatistics } = useSiteSearch();
-  const [statistics, setStatistics] = useState(null);
+  const {
+    user,
+    getFullName,
+    getRoleName,
+    needsPasswordChange,
+    getLastLoginInfo,
+    canViewSecurity,
+    canManageUsers,
+    refreshSecurityInfo,
+  } = useAuth();
+
+  const [stats, setStats] = useState({
+    users: { total: 0, active: 0, locked: 0 },
+    activities: { today: 0, week: 0, failed_logins_today: 0 },
+    security: { unresolved_alerts: 0, critical_alerts: 0, active_sessions: 0 },
+  });
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [securityAlerts, setSecurityAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   useEffect(() => {
-    loadStatistics();
+    loadDashboardData();
+
+    // Auto-refresh every 2 minutes
+    const interval = setInterval(loadDashboardData, 2 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const loadStatistics = async () => {
-    const result = await getStatistics();
-    if (result.success) {
-      setStatistics(result.data);
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Load statistics (available to all users)
+      const statsResponse = await apiService.getDashboardStatistics();
+      setStats(statsResponse.data);
+
+      // Load user's own activities
+      const activitiesResponse = await apiService.getMyActivities(10);
+      setRecentActivities(activitiesResponse.data.activities || []);
+
+      // Load security alerts if user has permission
+      if (canViewSecurity()) {
+        try {
+          const alertsResponse = await apiService.getSecurityAlerts({
+            is_resolved: "false",
+            per_page: 5,
+          });
+          setSecurityAlerts(alertsResponse.data.alerts || []);
+        } catch (alertError) {
+          console.warn("Failed to load security alerts:", alertError);
+        }
+      }
+
+      setLastRefresh(new Date());
+      setError("");
+    } catch (error) {
+      setError(apiService.formatError(error));
+      console.error("Dashboard load error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const quickActions = [
-    {
-      title: "تحليل ملف Excel",
-      description: "تحليل بيانات المكالمات والمواقع",
-      icon: <UploadIcon sx={{ fontSize: 32 }} />,
-      color: "primary",
-      onClick: () => navigate("/excel-analyzer"),
-    },
-    {
-      title: "تحليل Excel Z",
-      description: "تحليل الصيغة الخاصة Z",
-      icon: <TimelineIcon sx={{ fontSize: 32 }} />,
-      color: "secondary",
-      onClick: () => navigate("/excel-analyzer-z"),
-    },
-    {
-      title: "بحث الأبراج",
-      description: "البحث في قاعدة بيانات الأبراج",
-      icon: <TowerIcon sx={{ fontSize: 32 }} />,
-      color: "success",
-      onClick: () => navigate("/site-search"),
-    },
-    {
-      title: "مقارنة الشيتات",
-      description: "مقارنة البيانات بين عدة ملفات",
-      icon: <AnalyticsIcon sx={{ fontSize: 32 }} />,
-      color: "info",
-      onClick: () => navigate("/sheets-comparison"),
-    },
-  ];
+  const handleRefresh = () => {
+    loadDashboardData();
+    refreshSecurityInfo();
+  };
 
-  if (loading && !statistics) {
+  const getWelcomeMessage = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "صباح الخير";
+    if (hour < 18) return "مساء الخير";
+    return "مساء الخير";
+  };
+
+  const getActivityIcon = (action) => {
+    switch (action) {
+      case "تسجيل دخول":
+        return <LoginIcon color="success" />;
+      case "تسجيل خروج":
+        return <LogoutIcon color="primary" />;
+      case "محاولة دخول فاشلة":
+        return <ErrorIcon color="error" />;
+      case "قفل حساب":
+        return <BlockIcon color="warning" />;
+      default:
+        return <TimelineIcon color="primary" />;
+    }
+  };
+
+  const getSeverityColor = (severity) => {
+    switch (severity) {
+      case "حرج":
+        return "error";
+      case "عالي":
+        return "error";
+      case "متوسط":
+        return "warning";
+      case "منخفض":
+        return "info";
+      default:
+        return "default";
+    }
+  };
+
+  if (loading && !stats.users.total) {
     return (
-      <Box sx={{ width: "100%", mt: 2 }}>
-        <LinearProgress
-          sx={{
-            "& .MuiLinearProgress-bar": {
-              background: "linear-gradient(90deg, #00ff88 0%, #00cc6a 100%)",
-            },
-          }}
-        />
-        <Typography
-          variant="body2"
-          sx={{ mt: 1, textAlign: "center", color: "primary.main" }}
-        >
-          جاري تحميل البيانات...
-        </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "50vh",
+        }}
+      >
+        <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box>
+    <Box sx={{ padding: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h4"
-          gutterBottom
-          sx={{
-            fontWeight: "bold",
-            background: "linear-gradient(45deg, #00ff88 0%, #00cc6a 100%)",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            color: "transparent",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          لوحة التحكم الرئيسية - راصد
-        </Typography>
-        <Typography
-          variant="body1"
-          color="text.secondary"
-          sx={{ fontSize: "1.1rem" }}
-        >
-          مرحباً بك في منصة راصد للتحليل المتقدم للاتصالات
-        </Typography>
+      <Box
+        sx={{
+          marginBottom: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            {getWelcomeMessage()}، {getFullName()}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {getRoleName()} - آخر تحديث:{" "}
+            {lastRefresh.toLocaleTimeString("ar-SA")}
+          </Typography>
+        </Box>
+        <Tooltip title="تحديث البيانات">
+          <IconButton onClick={handleRefresh} disabled={loading}>
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
 
-      {/* Error Alert */}
+      {/* Alerts */}
       {error && (
         <Alert
           severity="error"
-          sx={{
-            mb: 3,
-            background: "rgba(255, 23, 68, 0.1)",
-            border: "1px solid rgba(255, 23, 68, 0.3)",
-            "& .MuiAlert-icon": {
-              color: "#ff1744",
-            },
-          }}
+          sx={{ marginBottom: 2 }}
+          onClose={() => setError("")}
         >
           {error}
         </Alert>
       )}
 
-      {/* Statistics Cards */}
-      {statistics && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="أبراج 2G"
-              value={statistics.statistics?.["2G"]}
-              icon={<TowerIcon />}
-              color="error"
-              trend="+12% هذا الشهر"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="أبراج 3G"
-              value={statistics.statistics?.["3G"]}
-              icon={<TowerIcon />}
-              color="warning"
-              trend="+8% هذا الشهر"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="أبراج 4G"
-              value={statistics.statistics?.["4G"]}
-              icon={<TowerIcon />}
-              color="success"
-              trend="+15% هذا الشهر"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="إجمالي الأبراج"
-              value={statistics.total_sites}
-              icon={<TowerIcon />}
-              color="primary"
-              trend="+11% هذا الشهر"
-              onClick={() => navigate("/site-search")}
-            />
-          </Grid>
-        </Grid>
+      {needsPasswordChange() && (
+        <Alert severity="warning" sx={{ marginBottom: 2 }}>
+          يجب تغيير كلمة المرور الخاصة بك لأسباب أمنية.
+          <Button color="inherit" size="small" sx={{ marginLeft: 2 }}>
+            تغيير الآن
+          </Button>
+        </Alert>
       )}
 
-      {/* Quick Actions */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h5"
-          gutterBottom
-          sx={{ fontWeight: 600, color: "primary.main" }}
-        >
-          الإجراءات السريعة
-        </Typography>
-        <Grid container spacing={3}>
-          {quickActions.map((action, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <QuickActionCard {...action} />
+      {/* Statistics Cards */}
+      <Grid container spacing={3} sx={{ marginBottom: 3 }}>
+        {/* Users Statistics */}
+        {canManageUsers() && (
+          <>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h4" color="primary">
+                        {stats.users.total}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        إجمالي المستخدمين
+                      </Typography>
+                    </Box>
+                    <PeopleIcon sx={{ fontSize: 40, color: "primary.main" }} />
+                  </Box>
+                </CardContent>
+              </Card>
             </Grid>
-          ))}
-        </Grid>
-      </Box>
 
-      {/* System Status */}
-      <Card
-        sx={{
-          mb: 3,
-          background: "linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%)",
-          border: "1px solid rgba(0, 255, 136, 0.2)",
-        }}
-      >
-        <CardContent>
-          <Typography
-            variant="h6"
-            gutterBottom
-            sx={{ fontWeight: 600, color: "primary.main" }}
-          >
-            حالة النظام - راصد
-          </Typography>
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <Chip
-              label="الخادم متصل"
-              color="success"
-              sx={{ fontWeight: "bold" }}
-            />
-            <Chip
-              label="قاعدة البيانات متصلة"
-              color="success"
-              sx={{ fontWeight: "bold" }}
-            />
-            <Chip
-              label="API متاح"
-              color="success"
-              sx={{ fontWeight: "bold" }}
-            />
-            <Chip
-              label="آخر تحديث: منذ 5 دقائق"
-              color="info"
-              variant="outlined"
-              sx={{ fontWeight: "bold" }}
-            />
-          </Box>
-        </CardContent>
-      </Card>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h4" color="success.main">
+                        {stats.users.active}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        مستخدمين نشطين
+                      </Typography>
+                    </Box>
+                    <CheckIcon sx={{ fontSize: 40, color: "success.main" }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="h4" color="warning.main">
+                        {stats.users.locked}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        حسابات مقفلة
+                      </Typography>
+                    </Box>
+                    <BlockIcon sx={{ fontSize: 40, color: "warning.main" }} />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
+
+        {/* Security Statistics */}
+        {canViewSecurity() && (
+          <Grid item xs={12} sm={6} md={3}>
+            <Card>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Box>
+                    <Typography variant="h4" color="error.main">
+                      {stats.security.critical_alerts}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      تنبيهات حرجة
+                    </Typography>
+                  </Box>
+                  <WarningIcon sx={{ fontSize: 40, color: "error.main" }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Activity Statistics */}
+        <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
+          <Card>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box>
+                  <Typography variant="h4" color="info.main">
+                    {stats.activities.today}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    نشاطات اليوم
+                  </Typography>
+                </Box>
+                <TimelineIcon sx={{ fontSize: 40, color: "info.main" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
+          <Card>
+            <CardContent>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box>
+                  <Typography variant="h4" color="secondary.main">
+                    {stats.activities.week}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    نشاطات الأسبوع
+                  </Typography>
+                </Box>
+                <AnalyticsIcon sx={{ fontSize: 40, color: "secondary.main" }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {stats.activities.failed_logins_today > 0 && (
+          <Grid item xs={12} sm={6} md={canManageUsers() ? 3 : 4}>
+            <Card>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Box>
+                    <Typography variant="h4" color="error.main">
+                      {stats.activities.failed_logins_today}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      محاولات دخول فاشلة اليوم
+                    </Typography>
+                  </Box>
+                  <ErrorIcon sx={{ fontSize: 40, color: "error.main" }} />
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+      </Grid>
+
+      <Grid container spacing={3}>
+        {/* Recent Activities */}
+        <Grid item xs={12} md={canViewSecurity() ? 6 : 8}>
+          <Paper sx={{ padding: 2, height: 400 }}>
+            <Typography variant="h6" gutterBottom>
+              النشاطات الأخيرة
+            </Typography>
+            <Divider sx={{ marginBottom: 2 }} />
+
+            {recentActivities.length === 0 ? (
+              <Box sx={{ textAlign: "center", padding: 4 }}>
+                <Typography color="text.secondary">
+                  لا توجد نشاطات حديثة
+                </Typography>
+              </Box>
+            ) : (
+              <List sx={{ height: 300, overflow: "auto" }}>
+                {recentActivities.map((activity, index) => (
+                  <ListItem key={index} divider>
+                    <ListItemIcon>
+                      {getActivityIcon(activity.action)}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={activity.description}
+                      secondary={
+                        <Box>
+                          <Typography variant="caption" display="block">
+                            {new Date(activity.timestamp).toLocaleString(
+                              "ar-SA"
+                            )}
+                          </Typography>
+                          {activity.ip_address && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              IP: {activity.ip_address}
+                            </Typography>
+                          )}
+                        </Box>
+                      }
+                    />
+                    {!activity.success && (
+                      <Chip label="فشل" color="error" size="small" />
+                    )}
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </Paper>
+        </Grid>
+
+        {/* Security Alerts */}
+        {canViewSecurity() && (
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ padding: 2, height: 400 }}>
+              <Typography variant="h6" gutterBottom>
+                التنبيهات الأمنية
+              </Typography>
+              <Divider sx={{ marginBottom: 2 }} />
+
+              {securityAlerts.length === 0 ? (
+                <Box sx={{ textAlign: "center", padding: 4 }}>
+                  <CheckIcon
+                    sx={{
+                      fontSize: 48,
+                      color: "success.main",
+                      marginBottom: 2,
+                    }}
+                  />
+                  <Typography color="success.main">
+                    لا توجد تنبيهات أمنية
+                  </Typography>
+                </Box>
+              ) : (
+                <List sx={{ height: 300, overflow: "auto" }}>
+                  {securityAlerts.map((alert, index) => (
+                    <ListItem key={index} divider>
+                      <ListItemIcon>
+                        <WarningIcon color={getSeverityColor(alert.severity)} />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={alert.title}
+                        secondary={
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              sx={{ marginBottom: 0.5 }}
+                            >
+                              {alert.description}
+                            </Typography>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 1,
+                                alignItems: "center",
+                              }}
+                            >
+                              <Chip
+                                label={alert.severity}
+                                color={getSeverityColor(alert.severity)}
+                                size="small"
+                              />
+                              <Typography variant="caption">
+                                {new Date(alert.created_at).toLocaleString(
+                                  "ar-SA"
+                                )}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Quick Actions */}
+        <Grid item xs={12} md={canViewSecurity() ? 12 : 4}>
+          <Paper sx={{ padding: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              إجراءات سريعة
+            </Typography>
+            <Divider sx={{ marginBottom: 2 }} />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<AnalyticsIcon />}
+                  href="/excel-analyzer"
+                >
+                  تحليل Excel
+                </Button>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<TowerIcon />}
+                  href="/site-search"
+                >
+                  بحث الأبراج
+                </Button>
+              </Grid>
+
+              {canManageUsers() && (
+                <Grid item xs={12} sm={6} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<AdminIcon />}
+                    href="/user-management"
+                  >
+                    إدارة المستخدمين
+                  </Button>
+                </Grid>
+              )}
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<SecurityIcon />}
+                  href="/my-security"
+                >
+                  الأمان الشخصي
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <Box sx={{ position: "fixed", bottom: 20, right: 20 }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
     </Box>
   );
 };

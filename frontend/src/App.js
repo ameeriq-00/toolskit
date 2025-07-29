@@ -16,11 +16,15 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 
 // Pages
 import Login from "./pages/Auth/Login";
+import PersonalSecurity from "./pages/Auth/PersonalSecurity";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import ExcelAnalyzer from "./pages/Analysis/ExcelAnalyzer";
 import ExcelAnalyzerZ from "./pages/Analysis/ExcelAnalyzerZ";
 import SheetsComparison from "./pages/Analysis/SheetsComparison";
 import TowerSearch from "./pages/Towers/TowerSearch";
+import UserManagement from "./pages/Admin/UserManagement";
+import SystemActivities from "./pages/Admin/SystemActivities";
+import SecurityAlerts from "./pages/Admin/SecurityAlerts";
 
 // Component to handle routing logic
 const AppRoutes = () => {
@@ -50,10 +54,11 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Analysis Routes */}
       <Route
         path="/excel-analyzer"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={["analyze_excel"]}>
             <MainLayout>
               <ExcelAnalyzer />
             </MainLayout>
@@ -64,7 +69,7 @@ const AppRoutes = () => {
       <Route
         path="/excel-analyzer-z"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={["analyze_excel"]}>
             <MainLayout>
               <ExcelAnalyzerZ />
             </MainLayout>
@@ -75,7 +80,7 @@ const AppRoutes = () => {
       <Route
         path="/sheets-comparison"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={["compare_sheets"]}>
             <MainLayout>
               <SheetsComparison />
             </MainLayout>
@@ -83,10 +88,11 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Towers Routes */}
       <Route
         path="/site-search"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermissions={["search_sites"]}>
             <MainLayout>
               <TowerSearch />
             </MainLayout>
@@ -94,13 +100,61 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Admin Only Routes */}
       <Route
         path="/site-management"
         element={
-          <ProtectedRoute adminOnly>
+          <ProtectedRoute
+            requiredPermissions={["upload_sites", "manage_sites"]}
+            requireAny
+          >
             <MainLayout>
               <div>Site Management Page - To be implemented</div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Routes */}
+      <Route
+        path="/user-management"
+        element={
+          <ProtectedRoute requiredPermissions={["view_users"]}>
+            <MainLayout>
+              <UserManagement />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/system-activities"
+        element={
+          <ProtectedRoute requiredPermissions={["view_activities"]}>
+            <MainLayout>
+              <SystemActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/security-alerts"
+        element={
+          <ProtectedRoute requiredPermissions={["view_security_alerts"]}>
+            <MainLayout>
+              <SecurityAlerts />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Personal Routes */}
+      <Route
+        path="/my-security"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <PersonalSecurity />
             </MainLayout>
           </ProtectedRoute>
         }
@@ -112,6 +166,18 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <MainLayout>
               <div>Settings Page - To be implemented</div>
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Change Password Route */}
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <PersonalSecurity />
             </MainLayout>
           </ProtectedRoute>
         }

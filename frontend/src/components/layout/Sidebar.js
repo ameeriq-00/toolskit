@@ -11,6 +11,7 @@ import {
   Badge,
   Chip,
   Divider,
+  Avatar,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -23,6 +24,8 @@ import {
   Timeline as TimelineIcon,
   Settings as SettingsIcon,
   AdminPanelSettings as AdminIcon,
+  Security as SecurityIcon,
+  People as PeopleIcon,
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material';
@@ -41,6 +44,8 @@ const iconMap = {
   Timeline: TimelineIcon,
   Settings: SettingsIcon,
   AdminPanelSettings: AdminIcon,
+  Security: SecurityIcon,
+  People: PeopleIcon,
 };
 
 const menuItems = [
@@ -92,24 +97,71 @@ const menuItems = [
         title: 'إدارة البيانات',
         icon: 'AdminPanelSettings',
         path: '/site-management',
-        adminOnly: true,
+        permissions: ['upload_sites', 'manage_sites'],
         badge: 'ADMIN',
       },
     ],
   },
   {
-    id: 'settings',
-    title: 'الإعدادات',
-    icon: 'Settings',
-    path: '/settings',
+    id: 'administration',
+    title: 'الإدارة',
+    icon: 'AdminPanelSettings',
+    permissions: ['view_users', 'view_activities', 'manage_system'],
+    children: [
+      {
+        id: 'user-management',
+        title: 'إدارة المستخدمين',
+        icon: 'People',
+        path: '/user-management',
+        permissions: ['view_users'],
+      },
+      {
+        id: 'system-activities',
+        title: 'سجل النشاطات',
+        icon: 'Timeline',
+        path: '/system-activities',
+        permissions: ['view_activities'],
+      },
+      {
+        id: 'security-alerts',
+        title: 'التنبيهات الأمنية',
+        icon: 'Security',
+        path: '/security-alerts',
+        permissions: ['view_security_alerts'],
+      },
+    ],
+  },
+  {
+    id: 'personal',
+    title: 'شخصي',
+    icon: 'Security',
+    children: [
+      {
+        id: 'my-security',
+        title: 'الأمان الشخصي',
+        icon: 'Security',
+        path: '/my-security',
+      },
+      {
+        id: 'settings',
+        title: 'الإعدادات',
+        icon: 'Settings',
+        path: '/settings',
+      },
+    ],
   },
 ];
 
 const Sidebar = ({ open, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
-  const [expandedItems, setExpandedItems] = useState(["analysis", "towers"]);
+  const { user, hasPermission, hasAnyPermission, getFullName, getRoleName } =
+    useAuth();
+  const [expandedItems, setExpandedItems] = useState([
+    "analysis",
+    "towers",
+    "personal",
+  ]);
 
   const toggleExpanded = (itemId) => {
     setExpandedItems((prev) =>
@@ -119,96 +171,132 @@ const Sidebar = ({ open, onClose }) => {
     );
   };
 
-  const handleItemClick = (item) => {
-    if (item.children) {
-      toggleExpanded(item.id);
-    } else if (item.path) {
-      navigate(item.path);
-      if (onClose) onClose();
+  const handleNavigation = (path) => {
+    navigate(path);
+    if (onClose) onClose();
+  };
+
+  const shouldShowItem = (item) => {
+    // If no permissions specified, show to all users
+    if (!item.permissions) return true;
+
+    // Check if user has any of the required permissions
+    return hasAnyPermission(...item.permissions);
+  };
+
+  const isItemActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const getActiveParent = () => {
+    const currentPath = location.pathname;
+    for (const item of menuItems) {
+      if (item.children) {
+        for (const child of item.children) {
+          if (child.path === currentPath) {
+            return item.id;
+          }
+        }
+      }
     }
+    return null;
   };
 
-  const isSelected = (path) => location.pathname === path;
+  const activeParent = getActiveParent();
 
-  const canAccess = (item) => {
-    if (item.adminOnly && !user?.is_staff) return false;
-    return true;
-  };
+  // Auto-expand parent of active item
+  React.useEffect(() => {
+    if (activeParent && !expandedItems.includes(activeParent)) {
+      setExpandedItems((prev) => [...prev, activeParent]);
+    }
+  }, [activeParent]);
 
-  const renderIcon = (iconName) => {
-    const IconComponent = iconMap[iconName];
-    return IconComponent ? <IconComponent /> : <DashboardIcon />;
-  };
-
-  const renderBadge = (badge) => {
-    if (!badge) return null;
-
-    const badgeProps = {
-      NEW: { color: "success", label: "جديد" },
-      ADMIN: { color: "error", label: "مدير" },
-    };
-
-    const props = badgeProps[badge] || { color: "default", label: badge };
-
-    return (
-      <Chip
-        size="small"
-        label={props.label}
-        color={props.color}
-        sx={{ ml: 1, fontSize: "0.6rem", height: 16 }}
-      />
-    );
-  };
-
-  const renderMenuItem = (item, depth = 0) => {
-    if (!canAccess(item)) return null;
-
+  const renderMenuItem = (item, isChild = false) => {
+    const IconComponent = iconMap[item.icon];
+    const isActive = isItemActive(item.path);
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedItems.includes(item.id);
-    const selected = item.path ? isSelected(item.path) : false;
+
+    // Check permissions
+    if (!shouldShowItem(item)) {
+      return null;
+    }
 
     return (
       <React.Fragment key={item.id}>
         <ListItem
           button
-          onClick={() => handleItemClick(item)}
-          selected={selected}
+          onClick={() => {
+            if (hasChildren) {
+              toggleExpanded(item.id);
+            } else if (item.path) {
+              handleNavigation(item.path);
+            }
+          }}
           sx={{
-            pl: 2 + depth * 2,
-            minHeight: 48,
+            marginX: 1,
+            borderRadius: 2,
+            marginBottom: 0.5,
+            paddingLeft: isChild ? 4 : 2,
+            backgroundColor: isActive
+              ? "rgba(0, 255, 136, 0.1)"
+              : "transparent",
+            borderLeft: isActive ? "3px solid #00ff88" : "none",
+            "&:hover": {
+              backgroundColor: "rgba(0, 255, 136, 0.05)",
+            },
           }}
         >
           <ListItemIcon
             sx={{
-              color: selected ? "primary.main" : "text.secondary",
+              color: isActive ? "#00ff88" : "rgba(255, 255, 255, 0.7)",
               minWidth: 40,
             }}
           >
-            {renderIcon(item.icon)}
+            <IconComponent />
           </ListItemIcon>
+
           <ListItemText
-            primary={
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: selected ? 600 : 400,
-                    color: selected ? "primary.main" : "text.primary",
-                  }}
-                >
-                  {item.title}
-                </Typography>
-                {renderBadge(item.badge)}
-              </Box>
-            }
+            primary={item.title}
+            sx={{
+              "& .MuiListItemText-primary": {
+                color: isActive ? "#00ff88" : "white",
+                fontWeight: isActive ? 600 : 400,
+                fontSize: isChild ? "0.875rem" : "1rem",
+              },
+            }}
           />
-          {hasChildren && (isExpanded ? <ExpandLess /> : <ExpandMore />)}
+
+          {/* Badges */}
+          {item.badge && (
+            <Chip
+              label={item.badge}
+              size="small"
+              color={item.badge === "NEW" ? "success" : "secondary"}
+              sx={{
+                height: 20,
+                fontSize: "0.6rem",
+                fontWeight: "bold",
+              }}
+            />
+          )}
+
+          {/* Expand/Collapse Icon */}
+          {hasChildren &&
+            (isExpanded ? (
+              <ExpandLess sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+            ) : (
+              <ExpandMore sx={{ color: "rgba(255, 255, 255, 0.7)" }} />
+            ))}
         </ListItem>
 
+        {/* Children Items */}
         {hasChildren && (
           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              {item.children.map((child) => renderMenuItem(child, depth + 1))}
+              {item.children
+                .filter((child) => shouldShowItem(child))
+                .map((child) => renderMenuItem(child, true))}
             </List>
           </Collapse>
         )}
@@ -216,88 +304,157 @@ const Sidebar = ({ open, onClose }) => {
     );
   };
 
-  const drawerContent = (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* Logo/Brand Section */}
-      <Box sx={{ p: 3, textAlign: "center" }}>
-        <Typography
-          variant="h4"
-          sx={{
-            color: "primary.main",
-            fontWeight: "bold",
-            fontSize: "2rem",
-            letterSpacing: "0.1em",
-            textShadow: "0 0 10px rgba(0, 255, 136, 0.5)",
-            mb: 1,
-          }}
-        >
-          راصد
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            color: "text.secondary",
-            display: "block",
-            fontSize: "0.75rem",
-          }}
-        >
-          منصة التحليل المتقدمة للاتصالات
-        </Typography>
-      </Box>
-
-      <Divider sx={{ borderColor: "rgba(0, 255, 136, 0.2)" }} />
-
-      {/* Navigation Menu */}
-      <Box sx={{ flex: 1, overflowY: "auto", py: 2 }}>
-        <List component="nav">
-          {menuItems.map((item) => renderMenuItem(item))}
-        </List>
-      </Box>
-
-      {/* Copyright Footer */}
-      <Box
-        sx={{
-          p: 2,
-          borderTop: "1px solid rgba(0, 255, 136, 0.2)",
-          textAlign: "center",
-        }}
-      >
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ fontSize: "0.65rem" }}
-        >
-          {APP_CONFIG.COPYRIGHT}
-        </Typography>
-        <br />
-        <Typography
-          variant="caption"
-          color="primary"
-          sx={{ fontSize: "0.6rem" }}
-        >
-          الإصدار {APP_CONFIG.VERSION}
-        </Typography>
-      </Box>
-    </Box>
-  );
-
   return (
     <Drawer
       variant="permanent"
       anchor="right"
-      open={open}
       sx={{
         width: APP_CONFIG.DRAWER_WIDTH,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
           width: APP_CONFIG.DRAWER_WIDTH,
           boxSizing: "border-box",
-          direction: "rtl",
-          zIndex: 1200,
+          background: "linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 100%)",
+          borderLeft: "2px solid #00ff88",
+          overflowX: "hidden",
         },
       }}
     >
-      {drawerContent}
+      {/* Header */}
+      <Box
+        sx={{
+          padding: 2,
+          background: "linear-gradient(90deg, #00ff88 0%, #00cc6a 100%)",
+          color: "#000",
+          textAlign: "center",
+          borderBottom: "1px solid rgba(0, 255, 136, 0.3)",
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold">
+          {APP_CONFIG.APP_NAME}
+        </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.8 }}>
+          نظام التحليل المتقدم
+        </Typography>
+      </Box>
+
+      {/* User Info */}
+      <Box
+        sx={{
+          padding: 2,
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: "rgba(0, 0, 0, 0.2)",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Avatar
+            sx={{
+              backgroundColor: "#00ff88",
+              color: "#000",
+              fontWeight: "bold",
+              width: 40,
+              height: 40,
+            }}
+          >
+            {getFullName().charAt(0) || user?.username?.charAt(0) || "U"}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle2"
+              sx={{
+                color: "white",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {getFullName() || user?.username}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "rgba(255, 255, 255, 0.7)",
+                display: "block",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {getRoleName()}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* User Status Indicators */}
+        <Box sx={{ marginTop: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {user?.is_superuser && (
+            <Chip
+              label="مدير عام"
+              size="small"
+              color="error"
+              sx={{ fontSize: "0.65rem", height: 18 }}
+            />
+          )}
+
+          {user?.profile?.must_change_password && (
+            <Chip
+              label="تغيير كلمة المرور مطلوب"
+              size="small"
+              color="warning"
+              sx={{ fontSize: "0.65rem", height: 18 }}
+            />
+          )}
+
+          {user?.profile?.account_expires_at && (
+            <Chip
+              label="حساب مؤقت"
+              size="small"
+              color="info"
+              sx={{ fontSize: "0.65rem", height: 18 }}
+            />
+          )}
+        </Box>
+      </Box>
+
+      {/* Navigation Menu */}
+      <Box sx={{ flex: 1, overflowY: "auto", paddingY: 1 }}>
+        <List component="nav">
+          {menuItems
+            .filter((item) => shouldShowItem(item))
+            .map((item) => renderMenuItem(item))}
+        </List>
+      </Box>
+
+      {/* Footer */}
+      <Box
+        sx={{
+          padding: 2,
+          borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+          backgroundColor: "rgba(0, 0, 0, 0.2)",
+          textAlign: "center",
+        }}
+      >
+        <Typography
+          variant="caption"
+          sx={{
+            color: "rgba(255, 255, 255, 0.5)",
+            display: "block",
+            marginBottom: 0.5,
+          }}
+        >
+          {APP_CONFIG.APP_NAME} v{APP_CONFIG.VERSION}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            color: "rgba(255, 255, 255, 0.3)",
+            fontSize: "0.65rem",
+          }}
+        >
+          {APP_CONFIG.COPYRIGHT}
+        </Typography>
+      </Box>
     </Drawer>
   );
 };

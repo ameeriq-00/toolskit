@@ -209,8 +209,6 @@ const TowerSearch = () => {
     }
   };
 
-
-
   return (
     <Box>
       {/* Header */}
