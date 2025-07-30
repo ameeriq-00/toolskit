@@ -179,31 +179,110 @@ const Login = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background:
-          "linear-gradient(135deg, #0a0a0a 0%, #1a2332 50%, #0a0a0a 100%)",
         position: "relative",
         overflow: "hidden",
         p: isMobile ? 1 : 0,
+        // خلفية أمنية وعسكرية محدثة
+        background: `
+          radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 70%),
+          radial-gradient(circle at 80% 20%, rgba(0, 255, 136, 0.05) 0%, transparent 70%),
+          radial-gradient(circle at 40% 90%, rgba(0, 255, 136, 0.04) 0%, transparent 70%),
+          linear-gradient(135deg, #0a0a0a 0%, #1a2332 30%, #0f1419 70%, #0a0a0a 100%)
+        `,
         "&::before": {
           content: '""',
           position: "absolute",
           inset: 0,
-          background: `
-            radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
-            radial-gradient(circle at 60% 80%, rgba(0, 255, 136, 0.05) 0%, transparent 50%)
+          // خلفية شبكة سايبر
+          backgroundImage: `
+            linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+            radial-gradient(circle at 30% 40%, rgba(0, 255, 136, 0.08) 1px, transparent 1px),
+            radial-gradient(circle at 70% 60%, rgba(0, 255, 136, 0.06) 1px, transparent 1px)
           `,
+          backgroundSize: "50px 50px, 50px 50px, 100px 100px, 150px 150px",
+          animation: "cyber-move 20s linear infinite",
           pointerEvents: "none",
+          "@keyframes cyber-move": {
+            "0%": { transform: "translate(0, 0)" },
+            "100%": { transform: "translate(20px, 20px)" },
+          },
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          // خطوط عسكرية متحركة
+          background: `
+            linear-gradient(45deg, transparent 30%, rgba(0, 255, 136, 0.02) 35%, rgba(0, 255, 136, 0.02) 65%, transparent 70%),
+            linear-gradient(-45deg, transparent 30%, rgba(0, 255, 136, 0.015) 35%, rgba(0, 255, 136, 0.015) 65%, transparent 70%)
+          `,
+          backgroundSize: "200px 200px",
+          animation: "military-scan 15s linear infinite",
+          pointerEvents: "none",
+          "@keyframes military-scan": {
+            "0%": {
+              transform: "translateX(-100px) translateY(-100px)",
+              opacity: 0.3,
+            },
+            "50%": {
+              opacity: 0.8,
+            },
+            "100%": {
+              transform: "translateX(100px) translateY(100px)",
+              opacity: 0.3,
+            },
+          },
         },
       }}
     >
-      {/* خلفية الخريطة */}
+      {/* مؤشرات أمنية متحركة في الزوايا */}
       <Box
         sx={{
           position: "absolute",
-          inset: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='map' x='0' y='0' width='100' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M10,10 L20,15 L30,10 L40,20 L50,15 L60,25 L70,20 L80,30 L90,25' stroke='%23ffffff' stroke-width='0.5' fill='none' opacity='0.03'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23map)'/%3E%3C/svg%3E")`,
-          opacity: 0.3,
+          top: 20,
+          left: 20,
+          width: 3,
+          height: 40,
+          background: "linear-gradient(180deg, #00ff88, transparent)",
+          animation: "security-blink 3s ease-in-out infinite",
+          "@keyframes security-blink": {
+            "0%, 100%": { opacity: 0.3 },
+            "50%": { opacity: 1 },
+          },
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          width: 40,
+          height: 3,
+          background: "linear-gradient(90deg, #00ff88, transparent)",
+          animation: "security-blink 3s ease-in-out infinite 1s",
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 20,
+          left: 20,
+          width: 40,
+          height: 3,
+          background: "linear-gradient(-90deg, #00ff88, transparent)",
+          animation: "security-blink 3s ease-in-out infinite 2s",
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 20,
+          right: 20,
+          width: 3,
+          height: 40,
+          background: "linear-gradient(0deg, #00ff88, transparent)",
+          animation: "security-blink 3s ease-in-out infinite 0.5s",
         }}
       />
 
@@ -276,14 +355,14 @@ const Login = () => {
                     },
                   }}
                 />
-                {isConnected ? "CONNECTED" : "DISCONNECTED"}
+                {isConnected ? "CONNECTED • SECURE" : "DISCONNECTED"}
               </Box>
 
               {/* مؤشر الأمان */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <securityLevel.icon sx={{ fontSize: 16 }} />
                 <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                  أمان: {securityLevel.level}
+                  {securityLevel.level}
                 </Typography>
               </Box>
             </Box>
@@ -302,17 +381,6 @@ const Login = () => {
                       mb: 1,
                     }}
                   >
-                    <Box
-                      component="img"
-                      src="/logo.png"
-                      alt="راصد"
-                      sx={{
-                        height: isMobile ? 32 : 40,
-                        filter:
-                          "brightness(0) sepia(1) hue-rotate(90deg) saturate(10) brightness(2)",
-                      }}
-                      onError={(e) => (e.target.style.display = "none")}
-                    />
                     <Typography
                       variant={isMobile ? "h4" : "h3"}
                       sx={{
@@ -332,10 +400,40 @@ const Login = () => {
                     sx={{
                       color: "rgba(255, 255, 255, 0.8)",
                       fontSize: isMobile ? "0.9rem" : "1rem",
+                      mb: 1,
                     }}
                   >
                     منصة التحليل المتقدمة للاتصالات
                   </Typography>
+
+                  {/* مؤشر الحماية */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: 1,
+                      mt: 2,
+                    }}
+                  >
+                    <Chip
+                      label="🔐 ENCRYPTED"
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(0, 255, 136, 0.1)",
+                        color: "#00ff88",
+                        fontSize: "0.7rem",
+                      }}
+                    />
+                    <Chip
+                      label="🛡️ SECURED"
+                      size="small"
+                      sx={{
+                        backgroundColor: "rgba(0, 255, 136, 0.1)",
+                        color: "#00ff88",
+                        fontSize: "0.7rem",
+                      }}
+                    />
+                  </Box>
                 </Box>
               </Slide>
 
@@ -638,6 +736,8 @@ const Login = () => {
                     sx={{
                       color: "rgba(255, 255, 255, 0.5)",
                       fontSize: isMobile ? "0.7rem" : "0.75rem",
+                      mb: 1,
+                      display: "block",
                     }}
                   >
                     🔒 نظام محمي ومشفر • راصد الإصدار 2.0

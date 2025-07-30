@@ -127,14 +127,16 @@ export const TECH_COLORS = {
   Z: "#2196f3",
 };
 
-// App constants
+// App constants - محدث مع معلومات المطور
 export const APP_CONFIG = {
   DRAWER_WIDTH: 280,
   DRAWER_WIDTH_COLLAPSED: 64,
   APP_NAME: "راصد",
   APP_NAME_EN: "RASED",
   VERSION: "2.0.0",
-  COPYRIGHT: "© 2024 راصد - جميع الحقوق محفوظة",
+  COPYRIGHT: "إعداد وبرمجة الملازم المهندس أمير علي منذور",
+  DEVELOPER: "الملازم المهندس أمير علي منذور",
+  MOBILE_COPYRIGHT: "إعداد وبرمجة\nالملازم المهندس أمير علي منذور",
 };
 
 // API endpoints

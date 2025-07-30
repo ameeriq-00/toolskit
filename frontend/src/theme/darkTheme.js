@@ -139,6 +139,19 @@ const responsiveTheme = createTheme({
           borderRight: "2px solid #00ff88",
           boxShadow: "4px 0 20px rgba(0, 255, 136, 0.2)",
           backgroundImage: "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%)",
+          // منع السكرول الأفقي
+          overflowX: "hidden",
+          // تحسين شريط التمرير
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(0, 255, 136, 0.3)",
+            borderRadius: "2px",
+          },
         },
       },
     },
@@ -483,6 +496,183 @@ const responsiveTheme = createTheme({
           "@media (max-width: 600px)": {
             paddingLeft: "8px",
             paddingTop: "8px",
+          },
+        },
+      },
+    },
+    // تحسينات إضافية للسايد بار على الهاتف
+    MuiBackdrop: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 900px)": {
+            // للهواتف - جعل الخلفية تبدأ من تحت التوب بار
+            top: "64px !important",
+          },
+        },
+      },
+    },
+    // تحسينات للقوائم المنسدلة
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: "#1a1a1a",
+          border: "1px solid rgba(0, 255, 136, 0.3)",
+          borderRadius: 8,
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          color: "white",
+          "&:hover": {
+            backgroundColor: "rgba(0, 255, 136, 0.1)",
+          },
+          "&.Mui-selected": {
+            backgroundColor: "rgba(0, 255, 136, 0.2)",
+          },
+        },
+      },
+    },
+    // تحسينات للجداول على الهاتف
+    MuiTableContainer: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            "& .MuiTable-root": {
+              minWidth: "auto",
+            },
+          },
+        },
+      },
+    },
+    // تحسينات للحقول على الهاتف
+    MuiFormControl: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            marginBottom: "16px",
+          },
+        },
+      },
+    },
+    // تحسينات للـ Chips
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            fontSize: "0.7rem",
+            height: "24px",
+          },
+        },
+      },
+    },
+    // تحسينات للـ Typography
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            "&.MuiTypography-h4": {
+              fontSize: "1.5rem",
+            },
+            "&.MuiTypography-h5": {
+              fontSize: "1.25rem",
+            },
+            "&.MuiTypography-h6": {
+              fontSize: "1.1rem",
+            },
+          },
+        },
+      },
+    },
+    // تحسينات للـ CardContent
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            padding: "12px",
+            "&:last-child": {
+              paddingBottom: "12px",
+            },
+          },
+        },
+      },
+    },
+    // تحسينات للـ Toolbar
+    MuiToolbar: {
+      styleOverrides: {
+        root: {
+          "@media (max-width: 600px)": {
+            minHeight: "56px",
+            paddingLeft: "16px",
+            paddingRight: "16px",
+          },
+        },
+      },
+    },
+    // تحسينات للـ Divider
+    MuiDivider: {
+      styleOverrides: {
+        root: {
+          borderColor: "rgba(255, 255, 255, 0.1)",
+        },
+      },
+    },
+    // تحسينات للـ Switch
+    MuiSwitch: {
+      styleOverrides: {
+        root: {
+          "& .MuiSwitch-switchBase.Mui-checked": {
+            color: "#00ff88",
+            "& + .MuiSwitch-track": {
+              backgroundColor: "#00cc6a",
+            },
+          },
+        },
+      },
+    },
+    // تحسينات للـ Select
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#333",
+          },
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#00ff88",
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "#00ff88",
+          },
+        },
+      },
+    },
+    // تحسينات للـ Skeleton
+    MuiSkeleton: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "rgba(255, 255, 255, 0.1)",
+        },
+      },
+    },
+    // تحسينات للـ Accordion
+    MuiAccordion: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#1a1a1a",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          "&:before": {
+            display: "none",
+          },
+        },
+      },
+    },
+    MuiAccordionSummary: {
+      styleOverrides: {
+        root: {
+          "&:hover": {
+            backgroundColor: "rgba(0, 255, 136, 0.05)",
           },
         },
       },

@@ -184,7 +184,7 @@ const TopBar = () => {
         </MenuItem>
       </Menu>
 
-      {/* درج الهاتف */}
+      {/* درج الهاتف - محدث ليكون محاذي للتوب بار */}
       {isMobile && (
         <Drawer
           variant="temporary"
@@ -196,6 +196,19 @@ const TopBar = () => {
             "& .MuiDrawer-paper": {
               width: APP_CONFIG.DRAWER_WIDTH,
               boxSizing: "border-box",
+              backgroundColor: "#1a1a1a",
+              borderRight: "2px solid #00ff88",
+              boxShadow: "4px 0 20px rgba(0, 255, 136, 0.2)",
+              backgroundImage:
+                "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%)",
+              // محاذاة للتوب بار
+              marginTop: "64px", // ارتفاع التوب بار
+              height: "calc(100% - 64px)", // باقي الارتفاع
+              // منع السكرول الأفقي
+              overflowX: "hidden",
+            },
+            "& .MuiBackdrop-root": {
+              marginTop: "64px", // جعل الخلفية تبدأ من تحت التوب بار
             },
           }}
         >

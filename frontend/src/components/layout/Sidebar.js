@@ -10,7 +10,6 @@ import {
   Collapse,
   Chip,
   Divider,
-  Avatar,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -149,7 +148,7 @@ const menuItems = [
 const Sidebar = ({ onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, hasAnyPermission, getFullName, getRoleName } = useAuth();
+  const { hasAnyPermission } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -268,104 +267,105 @@ const Sidebar = ({ onClose }) => {
 
   const drawerContent = (
     <>
-      {/* الرأس */}
+      {/* الرأس - محدث بدون معلومات المستخدم */}
       <Box
         sx={{
-          p: 2,
+          p: isMobile ? 1.5 : 2,
           background: "linear-gradient(90deg, #00ff88 0%, #00cc6a 100%)",
           color: "#000",
           textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 1,
+          minHeight: isMobile ? 56 : 64, // محاذاة مع TopBar
         }}
       >
-        <Typography variant="h5" fontWeight="bold">
+        {/* شعار صغير */}
+        <Box
+          sx={{
+            width: 24,
+            height: 24,
+            backgroundColor: "#000",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.8rem",
+            fontWeight: "bold",
+            color: "#00ff88",
+          }}
+        >
+          ر
+        </Box>
+        <Typography
+          variant={isMobile ? "h6" : "h5"}
+          sx={{
+            fontWeight: "bold",
+            fontSize: isMobile ? "1.1rem" : "1.3rem",
+          }}
+        >
           {APP_CONFIG.APP_NAME}
         </Typography>
-        <Typography variant="caption" sx={{ opacity: 0.8 }}>
-          نظام التحليل المتقدم
-        </Typography>
       </Box>
 
-      {/* معلومات المستخدم */}
-      <Box sx={{ p: 2, borderBottom: "1px solid rgba(255, 255, 255, 0.1)" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar
-            sx={{
-              backgroundColor: "#00ff88",
-              color: "#000",
-              fontWeight: "bold",
-              width: 40,
-              height: 40,
-            }}
-          >
-            {getFullName().charAt(0) || "U"}
-          </Avatar>
-
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="subtitle2"
-              sx={{ color: "white", fontWeight: 600 }}
-              noWrap
-            >
-              {getFullName() || user?.username}
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
-              noWrap
-            >
-              {getRoleName()}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* حالة المستخدم */}
-        <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap" }}>
-          {user?.is_superuser && (
-            <Chip
-              label="مدير عام"
-              size="small"
-              color="error"
-              sx={{ fontSize: "0.65rem", height: 18 }}
-            />
-          )}
-          {user?.profile?.must_change_password && (
-            <Chip
-              label="تغيير كلمة مرور"
-              size="small"
-              color="warning"
-              sx={{ fontSize: "0.65rem", height: 18 }}
-            />
-          )}
-        </Box>
-      </Box>
-
-      {/* القائمة */}
-      <Box sx={{ flex: 1, overflowY: "auto", py: 1 }}>
-        <List component="nav">
+      {/* القائمة - محسنة لعدم وجود سكرول */}
+      <Box
+        sx={{
+          flex: 1,
+          overflowY: "auto",
+          overflowX: "hidden", // منع السكرول الأفقي
+          py: 1,
+          // إخفاء شريط التمرير
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(0, 255, 136, 0.3)",
+            borderRadius: "2px",
+          },
+        }}
+      >
+        <List component="nav" sx={{ px: 0 }}>
           {menuItems.filter(shouldShowItem).map((item) => renderMenuItem(item))}
         </List>
       </Box>
 
-      {/* التذييل */}
+      {/* التذييل - محدث */}
       <Box
         sx={{
-          p: 2,
+          p: isMobile ? 1.5 : 2,
           borderTop: "1px solid rgba(255, 255, 255, 0.1)",
           textAlign: "center",
+          minHeight: "auto", // تقليل المساحة
         }}
       >
         <Typography
           variant="caption"
-          sx={{ color: "rgba(255, 255, 255, 0.5)" }}
+          sx={{
+            color: "rgba(255, 255, 255, 0.5)",
+            fontSize: isMobile ? "0.65rem" : "0.7rem",
+            display: "block",
+          }}
         >
           {APP_CONFIG.APP_NAME} v{APP_CONFIG.VERSION}
         </Typography>
-        <br />
         <Typography
           variant="caption"
-          sx={{ color: "rgba(255, 255, 255, 0.3)", fontSize: "0.65rem" }}
+          sx={{
+            color: "rgba(255, 255, 255, 0.3)",
+            fontSize: isMobile ? "0.6rem" : "0.65rem",
+            display: "block",
+            mt: 0.5,
+            lineHeight: 1.2,
+          }}
         >
-          {APP_CONFIG.COPYRIGHT}
+          إعداد وبرمجة
+          <br />
+          الملازم المهندس أمير علي منذور
         </Typography>
       </Box>
     </>
@@ -385,6 +385,12 @@ const Sidebar = ({ onClose }) => {
         "& .MuiDrawer-paper": {
           width: APP_CONFIG.DRAWER_WIDTH,
           boxSizing: "border-box",
+          backgroundColor: "#1a1a1a",
+          borderRight: "2px solid #00ff88",
+          boxShadow: "4px 0 20px rgba(0, 255, 136, 0.2)",
+          backgroundImage: "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%)",
+          // منع السكرول الأفقي
+          overflowX: "hidden",
         },
       }}
     >
