@@ -306,24 +306,46 @@ const apiService = {
     return response.data;
   },
 
-  // ===== Nearby Sites =====
+  // ===== Nearby Sites - النسخة المُحدثة =====
   async findNearbySites(searchData) {
     const response = await api.post("/api/sites/nearby/", searchData);
     return response.data;
   },
 
-  async findNearbyAsiaSites(searchData) {
-    const response = await api.post("/api/sites/nearby/asia/", searchData);
+  async findNearbyAsiaSites(siteData, limit = 2) {
+    // تعديل هيكل البيانات ليتطابق مع Backend
+    const requestData = {
+      site_data: siteData, // ✅ تغليف البيانات بـ site_data
+      limit: limit,
+    };
+    console.log("🔍 Frontend API - البيانات المرسلة لـ آسيا:", requestData);
+
+    const response = await api.post("/api/sites/nearby/asia/", requestData);
     return response.data;
   },
 
-  async findNearbyZainSites(searchData) {
-    const response = await api.post("/api/sites/nearby/zain/", searchData);
+  async findNearbyZainSites(siteData, limit = 2) {
+    // تعديل هيكل البيانات ليتطابق مع Backend
+    const requestData = {
+      site_data: siteData, // ✅ تغليف البيانات بـ site_data
+      limit: limit,
+    };
+    console.log("🔍 Frontend API - البيانات المرسلة لـ زين:", requestData);
+
+    const response = await api.post("/api/sites/nearby/zain/", requestData);
     return response.data;
   },
 
-  async getNearbySitesInRadius(searchData) {
-    const response = await api.post("/api/sites/nearby/radius/", searchData);
+  async getNearbySitesInRadius(lat, lon, radius, technology = "all") {
+    // تحديث المعاملات لتتطابق مع Backend
+    const params = new URLSearchParams({
+      lat: lat.toString(),
+      lon: lon.toString(),
+      radius: radius.toString(),
+      technology: technology,
+    });
+
+    const response = await api.get(`/api/sites/nearby/radius/?${params}`);
     return response.data;
   },
 
