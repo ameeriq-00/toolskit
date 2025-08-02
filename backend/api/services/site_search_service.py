@@ -542,6 +542,7 @@ class UnifiedSiteSearchService:
             },
             'technical_info': {
                 'bore': float(site.bore) if site.bore else None,
+                'azimuth': float(site.bore) if site.bore else None,
                 'lac_cell_id_ecgi': site.lac_cell_id_ecgi
             },
             'match_type': match_type,
