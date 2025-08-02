@@ -45,51 +45,51 @@ const responsiveTheme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Cairo", "Inter", "Roboto", sans-serif',
+    fontFamily: '"Tajawal", "Cairo", "Roboto", sans-serif',
     h1: {
-      fontSize: "clamp(2rem, 5vw, 3.5rem)",
+      fontSize: "clamp(1.8rem, 4.5vw, 3rem)",
       fontWeight: 700,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     h2: {
-      fontSize: "clamp(1.75rem, 4vw, 3rem)",
+      fontSize: "clamp(1.6rem, 3.5vw, 2.5rem)",
       fontWeight: 700,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     h3: {
-      fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)",
+      fontSize: "clamp(1.4rem, 3vw, 2rem)",
       fontWeight: 600,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     h4: {
-      fontSize: "clamp(1.25rem, 3vw, 2rem)",
+      fontSize: "clamp(1.2rem, 2.5vw, 1.75rem)",
       fontWeight: 600,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     h5: {
-      fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)",
+      fontSize: "clamp(1.1rem, 2vw, 1.4rem)",
       fontWeight: 600,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     h6: {
-      fontSize: "clamp(1rem, 2vw, 1.25rem)",
+      fontSize: "clamp(1rem, 1.8vw, 1.2rem)",
       fontWeight: 600,
-      letterSpacing: "0.02em",
+      letterSpacing: "0.01em",
     },
     body1: {
-      fontSize: "clamp(0.875rem, 1.5vw, 1rem)",
-      lineHeight: 1.6,
-    },
-    body2: {
-      fontSize: "clamp(0.75rem, 1.25vw, 0.875rem)",
+      fontSize: "clamp(0.85rem, 1.4vw, 0.95rem)",
       lineHeight: 1.5,
     },
-    caption: {
-      fontSize: "clamp(0.65rem, 1vw, 0.75rem)",
+    body2: {
+      fontSize: "clamp(0.8rem, 1.2vw, 0.85rem)",
       lineHeight: 1.4,
     },
+    caption: {
+      fontSize: "clamp(0.7rem, 1vw, 0.75rem)",
+      lineHeight: 1.3,
+    },
     button: {
-      fontSize: "clamp(0.8rem, 1.5vw, 0.95rem)",
+      fontSize: "clamp(0.8rem, 1.3vw, 0.9rem)",
       fontWeight: 600,
       textTransform: "none",
     },
@@ -124,7 +124,7 @@ const responsiveTheme = createTheme({
           width: "100%",
           margin: 0,
           padding: 0,
-          fontFamily: '"Cairo", "Inter", "Roboto", sans-serif',
+          fontFamily: '"Tajawal", "Cairo", "Roboto", sans-serif',
         },
         "#root": {
           height: "100%",
@@ -136,21 +136,19 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         paper: {
           backgroundColor: "#1a1a1a",
-          borderRight: "2px solid #00ff88",
-          boxShadow: "4px 0 20px rgba(0, 255, 136, 0.2)",
-          backgroundImage: "linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%)",
-          // منع السكرول الأفقي
+          borderRight: "1px solid rgba(0, 255, 136, 0.2)",
+          borderRadius: 0,
+          boxShadow: "2px 0 8px rgba(0, 0, 0, 0.3)",
           overflowX: "hidden",
-          // تحسين شريط التمرير
           "&::-webkit-scrollbar": {
-            width: "4px",
+            width: "3px",
           },
           "&::-webkit-scrollbar-track": {
             backgroundColor: "transparent",
           },
           "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(0, 255, 136, 0.3)",
-            borderRadius: "2px",
+            backgroundColor: "rgba(0, 255, 136, 0.2)",
+            borderRadius: 0,
           },
         },
       },
@@ -159,14 +157,14 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: "#1a1a1a",
-          border: "1px solid #333",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
           borderRadius: 12,
-          boxShadow: "0 8px 32px rgba(0, 255, 136, 0.1)",
-          transition: "all 0.3s ease",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+          transition: "all 0.2s ease",
           "&:hover": {
-            borderColor: "#00ff88",
-            boxShadow: "0 8px 32px rgba(0, 255, 136, 0.3)",
-            transform: "translateY(-2px)",
+            borderColor: "rgba(0, 255, 136, 0.3)",
+            boxShadow: "0 6px 16px rgba(0, 255, 136, 0.1)",
+            transform: "translateY(-1px)",
           },
         },
       },
@@ -178,22 +176,20 @@ const responsiveTheme = createTheme({
           fontWeight: 600,
           borderRadius: 8,
           padding: "8px 16px",
-          transition: "all 0.3s ease",
+          transition: "all 0.2s ease",
           "@media (max-width: 600px)": {
             padding: "10px 16px",
-            fontSize: "0.875rem",
+            fontSize: "0.85rem",
           },
         },
         contained: {
-          background: "linear-gradient(45deg, #00ff88 0%, #00cc6a 100%)",
+          backgroundColor: "#00ff88",
           color: "#000",
-          boxShadow: "0 4px 16px rgba(0, 255, 136, 0.3)",
+          boxShadow: "0 3px 10px rgba(0, 255, 136, 0.3)",
           "&:hover": {
-            boxShadow: "0 6px 20px rgba(0, 255, 136, 0.4)",
-            transform: "translateY(-2px)",
-          },
-          "&:active": {
-            transform: "translateY(0)",
+            backgroundColor: "#00cc6a",
+            boxShadow: "0 5px 15px rgba(0, 255, 136, 0.4)",
+            transform: "translateY(-1px)",
           },
         },
         outlined: {
@@ -201,7 +197,7 @@ const responsiveTheme = createTheme({
           color: "#00ff88",
           "&:hover": {
             borderColor: "#00cc6a",
-            backgroundColor: "rgba(0, 255, 136, 0.1)",
+            backgroundColor: "rgba(0, 255, 136, 0.08)",
           },
         },
       },
@@ -209,9 +205,10 @@ const responsiveTheme = createTheme({
     MuiIconButton: {
       styleOverrides: {
         root: {
-          transition: "all 0.3s ease",
+          borderRadius: 8,
+          transition: "all 0.2s ease",
           "&:hover": {
-            backgroundColor: "rgba(0, 255, 136, 0.1)",
+            backgroundColor: "rgba(0, 255, 136, 0.08)",
             transform: "scale(1.05)",
           },
           "@media (max-width: 600px)": {
@@ -223,19 +220,16 @@ const responsiveTheme = createTheme({
     MuiListItem: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          margin: "4px 12px",
-          transition: "all 0.3s ease",
+          borderRadius: 0,
+          margin: "1px 4px",
+          transition: "all 0.2s ease",
           "&:hover": {
-            background:
-              "linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 255, 136, 0.05) 100%)",
-            borderLeft: "4px solid #00ff88",
-            transform: "translateX(4px)",
+            backgroundColor: "rgba(0, 255, 136, 0.05)",
+            borderLeft: "3px solid #00ff88",
           },
           "&.Mui-selected": {
-            background:
-              "linear-gradient(90deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.1) 100%)",
-            borderLeft: "4px solid #00ff88",
+            backgroundColor: "rgba(0, 255, 136, 0.1)",
+            borderLeft: "3px solid #00ff88",
           },
         },
       },
@@ -246,9 +240,9 @@ const responsiveTheme = createTheme({
           "& .MuiOutlinedInput-root": {
             backgroundColor: "#1a1a1a",
             borderRadius: 8,
-            transition: "all 0.3s ease",
+            transition: "all 0.2s ease",
             "& fieldset": {
-              borderColor: "#333",
+              borderColor: "rgba(255, 255, 255, 0.2)",
               borderWidth: 1,
             },
             "&:hover fieldset": {
@@ -257,30 +251,21 @@ const responsiveTheme = createTheme({
             "&.Mui-focused fieldset": {
               borderColor: "#00ff88",
               borderWidth: 2,
-            },
-            "&.Mui-error fieldset": {
-              borderColor: "#f44336",
+              boxShadow: "0 0 0 3px rgba(0, 255, 136, 0.1)",
             },
           },
           "& .MuiInputLabel-root": {
             color: "rgba(255, 255, 255, 0.7)",
+            fontSize: "0.9rem",
             "&.Mui-focused": {
               color: "#00ff88",
-            },
-            "&.Mui-error": {
-              color: "#f44336",
             },
           },
           "& .MuiInputBase-input": {
             color: "white",
+            fontSize: "0.9rem",
             "@media (max-width: 600px)": {
-              fontSize: "16px", // Prevent zoom on iOS
-            },
-          },
-          "& .MuiFormHelperText-root": {
-            fontSize: "0.75rem",
-            "&.Mui-error": {
-              color: "#f44336",
+              fontSize: "16px",
             },
           },
         },
@@ -293,8 +278,9 @@ const responsiveTheme = createTheme({
             backgroundColor: "#00ff88",
             color: "#000",
             fontWeight: 700,
-            fontSize: "0.875rem",
+            fontSize: "0.85rem",
             padding: "12px 16px",
+            borderRadius: 0,
             "@media (max-width: 600px)": {
               padding: "8px 12px",
               fontSize: "0.75rem",
@@ -306,8 +292,9 @@ const responsiveTheme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: {
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          padding: "12px 16px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          padding: "10px 16px",
+          fontSize: "0.85rem",
           "@media (max-width: 600px)": {
             padding: "8px 12px",
             fontSize: "0.8rem",
@@ -321,16 +308,16 @@ const responsiveTheme = createTheme({
           backgroundColor: "#1a1a1a",
           backgroundImage: "none",
           borderRadius: 12,
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
         },
         elevation1: {
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
         },
         elevation4: {
-          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.3)",
         },
         elevation8: {
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 8px 32px rgba(0, 255, 136, 0.1)",
         },
       },
     },
@@ -338,9 +325,9 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: "#1a1a1a",
-          borderBottom: "2px solid #00ff88",
-          boxShadow: "0 2px 20px rgba(0, 255, 136, 0.3)",
-          backgroundImage: "linear-gradient(90deg, #0f0f0f 0%, #1a1a1a 100%)",
+          borderBottom: "1px solid rgba(0, 255, 136, 0.2)",
+          borderRadius: 0,
+          boxShadow: "0 1px 4px rgba(0, 0, 0, 0.3)",
         },
       },
     },
@@ -349,7 +336,10 @@ const responsiveTheme = createTheme({
         root: {
           borderRadius: 16,
           fontWeight: 500,
-          transition: "all 0.3s ease",
+          fontSize: "0.75rem",
+          height: "auto",
+          padding: "4px 8px",
+          transition: "all 0.2s ease",
           "&:hover": {
             transform: "scale(1.05)",
           },
@@ -369,28 +359,26 @@ const responsiveTheme = createTheme({
         root: {
           borderRadius: 8,
           border: "1px solid",
-          "& .MuiAlert-icon": {
-            fontSize: "1.2rem",
-          },
+          fontSize: "0.85rem",
         },
         standardSuccess: {
-          backgroundColor: "rgba(76, 175, 80, 0.1)",
-          borderColor: "rgba(76, 175, 80, 0.3)",
+          backgroundColor: "rgba(76, 175, 80, 0.08)",
+          borderColor: "rgba(76, 175, 80, 0.2)",
           color: "#81c784",
         },
         standardError: {
-          backgroundColor: "rgba(244, 67, 54, 0.1)",
-          borderColor: "rgba(244, 67, 54, 0.3)",
+          backgroundColor: "rgba(244, 67, 54, 0.08)",
+          borderColor: "rgba(244, 67, 54, 0.2)",
           color: "#e57373",
         },
         standardWarning: {
-          backgroundColor: "rgba(255, 152, 0, 0.1)",
-          borderColor: "rgba(255, 152, 0, 0.3)",
+          backgroundColor: "rgba(255, 152, 0, 0.08)",
+          borderColor: "rgba(255, 152, 0, 0.2)",
           color: "#ffb74d",
         },
         standardInfo: {
-          backgroundColor: "rgba(33, 150, 243, 0.1)",
-          borderColor: "rgba(33, 150, 243, 0.3)",
+          backgroundColor: "rgba(33, 150, 243, 0.08)",
+          borderColor: "rgba(33, 150, 243, 0.2)",
           color: "#64b5f6",
         },
       },
@@ -399,7 +387,7 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 4,
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
+          backgroundColor: "rgba(255, 255, 255, 0.08)",
         },
         bar: {
           borderRadius: 4,
@@ -417,7 +405,7 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         paper: {
           backgroundColor: "#1a1a1a",
-          border: "1px solid rgba(0, 255, 136, 0.3)",
+          border: "1px solid rgba(0, 255, 136, 0.2)",
           borderRadius: 12,
           "@media (max-width: 600px)": {
             margin: "16px",
@@ -434,24 +422,21 @@ const responsiveTheme = createTheme({
           color: "#fff",
           fontSize: "0.75rem",
           borderRadius: 6,
-          border: "1px solid rgba(0, 255, 136, 0.3)",
-        },
-        arrow: {
-          color: "#333",
+          border: "1px solid rgba(0, 255, 136, 0.2)",
         },
       },
     },
     MuiTabs: {
       styleOverrides: {
         root: {
-          minHeight: 48,
+          minHeight: 44,
           "@media (max-width: 600px)": {
             minHeight: 40,
           },
         },
         indicator: {
           backgroundColor: "#00ff88",
-          height: 3,
+          height: 2,
         },
       },
     },
@@ -460,8 +445,8 @@ const responsiveTheme = createTheme({
         root: {
           textTransform: "none",
           fontWeight: 500,
-          fontSize: "0.875rem",
-          minHeight: 48,
+          fontSize: "0.85rem",
+          minHeight: 44,
           color: "rgba(255, 255, 255, 0.7)",
           "&.Mui-selected": {
             color: "#00ff88",
@@ -478,47 +463,19 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           "@media (max-width: 600px)": {
-            paddingLeft: "16px",
-            paddingRight: "16px",
+            paddingLeft: "12px",
+            paddingRight: "12px",
           },
         },
       },
     },
-    MuiGrid: {
-      styleOverrides: {
-        container: {
-          "@media (max-width: 600px)": {
-            margin: 0,
-            width: "100%",
-          },
-        },
-        item: {
-          "@media (max-width: 600px)": {
-            paddingLeft: "8px",
-            paddingTop: "8px",
-          },
-        },
-      },
-    },
-    // تحسينات إضافية للسايد بار على الهاتف
-    MuiBackdrop: {
-      styleOverrides: {
-        root: {
-          "@media (max-width: 900px)": {
-            // للهواتف - جعل الخلفية تبدأ من تحت التوب بار
-            top: "64px !important",
-          },
-        },
-      },
-    },
-    // تحسينات للقوائم المنسدلة
     MuiMenu: {
       styleOverrides: {
         paper: {
           backgroundColor: "#1a1a1a",
-          border: "1px solid rgba(0, 255, 136, 0.3)",
+          border: "1px solid rgba(0, 255, 136, 0.2)",
           borderRadius: 8,
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
         },
       },
     },
@@ -526,70 +483,33 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           color: "white",
+          fontSize: "0.85rem",
+          padding: "8px 16px",
           "&:hover": {
-            backgroundColor: "rgba(0, 255, 136, 0.1)",
+            backgroundColor: "rgba(0, 255, 136, 0.08)",
           },
           "&.Mui-selected": {
-            backgroundColor: "rgba(0, 255, 136, 0.2)",
+            backgroundColor: "rgba(0, 255, 136, 0.12)",
           },
         },
       },
     },
-    // تحسينات للجداول على الهاتف
-    MuiTableContainer: {
-      styleOverrides: {
-        root: {
-          "@media (max-width: 600px)": {
-            "& .MuiTable-root": {
-              minWidth: "auto",
-            },
-          },
-        },
-      },
-    },
-    // تحسينات للحقول على الهاتف
     MuiFormControl: {
       styleOverrides: {
         root: {
           "@media (max-width: 600px)": {
-            marginBottom: "16px",
+            marginBottom: "12px",
           },
         },
       },
     },
-    // تحسينات للـ Chips
-    MuiChip: {
-      styleOverrides: {
-        root: {
-          "@media (max-width: 600px)": {
-            fontSize: "0.7rem",
-            height: "24px",
-          },
-        },
-      },
-    },
-    // تحسينات للـ Typography
-    MuiTypography: {
-      styleOverrides: {
-        root: {
-          "@media (max-width: 600px)": {
-            "&.MuiTypography-h4": {
-              fontSize: "1.5rem",
-            },
-            "&.MuiTypography-h5": {
-              fontSize: "1.25rem",
-            },
-            "&.MuiTypography-h6": {
-              fontSize: "1.1rem",
-            },
-          },
-        },
-      },
-    },
-    // تحسينات للـ CardContent
     MuiCardContent: {
       styleOverrides: {
         root: {
+          padding: "16px",
+          "&:last-child": {
+            paddingBottom: "16px",
+          },
           "@media (max-width: 600px)": {
             padding: "12px",
             "&:last-child": {
@@ -599,27 +519,25 @@ const responsiveTheme = createTheme({
         },
       },
     },
-    // تحسينات للـ Toolbar
     MuiToolbar: {
       styleOverrides: {
         root: {
+          minHeight: "64px !important",
           "@media (max-width: 600px)": {
-            minHeight: "56px",
-            paddingLeft: "16px",
-            paddingRight: "16px",
+            minHeight: "56px !important",
+            paddingLeft: "12px",
+            paddingRight: "12px",
           },
         },
       },
     },
-    // تحسينات للـ Divider
     MuiDivider: {
       styleOverrides: {
         root: {
-          borderColor: "rgba(255, 255, 255, 0.1)",
+          borderColor: "rgba(255, 255, 255, 0.08)",
         },
       },
     },
-    // تحسينات للـ Switch
     MuiSwitch: {
       styleOverrides: {
         root: {
@@ -632,12 +550,12 @@ const responsiveTheme = createTheme({
         },
       },
     },
-    // تحسينات للـ Select
     MuiSelect: {
       styleOverrides: {
         root: {
           "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: "#333",
+            borderColor: "rgba(255, 255, 255, 0.2)",
+            borderRadius: 8,
           },
           "&:hover .MuiOutlinedInput-notchedOutline": {
             borderColor: "#00ff88",
@@ -648,20 +566,12 @@ const responsiveTheme = createTheme({
         },
       },
     },
-    // تحسينات للـ Skeleton
-    MuiSkeleton: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-        },
-      },
-    },
-    // تحسينات للـ Accordion
     MuiAccordion: {
       styleOverrides: {
         root: {
           backgroundColor: "#1a1a1a",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
+          border: "1px solid rgba(255, 255, 255, 0.08)",
+          borderRadius: 8,
           "&:before": {
             display: "none",
           },
@@ -672,7 +582,7 @@ const responsiveTheme = createTheme({
       styleOverrides: {
         root: {
           "&:hover": {
-            backgroundColor: "rgba(0, 255, 136, 0.05)",
+            backgroundColor: "rgba(0, 255, 136, 0.04)",
           },
         },
       },

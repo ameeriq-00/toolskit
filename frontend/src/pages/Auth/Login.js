@@ -11,8 +11,6 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
-  Chip,
-  LinearProgress,
   useTheme,
   useMediaQuery,
   Fade,
@@ -23,9 +21,7 @@ import {
   VisibilityOff,
   AccountCircle as UserIcon,
   Lock as LockIcon,
-  FlightTakeoff as PlaneIcon,
-  Security,
-  Warning,
+  Fingerprint, // الأيقونة الجديدة
   WifiOff,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,7 +34,6 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [remainingAttempts, setRemainingAttempts] = useState(5);
-  const [passwordStrength, setPasswordStrength] = useState(null);
   const [isConnected, setIsConnected] = useState(navigator.onLine);
   const [animateElements, setAnimateElements] = useState(false);
 
@@ -46,7 +41,7 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // تتبع حالة الاتصال والرسوم المتحركة
   useEffect(() => {
@@ -68,27 +63,6 @@ const Login = () => {
   // تحديث البيانات
   const updateFormData = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-
-    if (field === "password" && value) {
-      setPasswordStrength(calculatePasswordStrength(value));
-    } else if (field === "password") {
-      setPasswordStrength(null);
-    }
-  };
-
-  // حساب قوة كلمة المرور
-  const calculatePasswordStrength = (password) => {
-    let score = 0;
-    if (password.length >= 8) score += 25;
-    if (/[A-Z]/.test(password)) score += 25;
-    if (/[a-z]/.test(password)) score += 25;
-    if (/[0-9]/.test(password)) score += 25;
-
-    return {
-      score,
-      label: score < 50 ? "ضعيف" : score < 75 ? "متوسط" : "قوي",
-      color: score < 50 ? "error" : score < 75 ? "warning" : "success",
-    };
   };
 
   // تسجيل الدخول
@@ -129,9 +103,9 @@ const Login = () => {
               (1000 * 60 * 60 * 24)
           );
 
-          if (daysLeft <= 7) {
+          if (daysLeft <= 7 && daysLeft > 0) {
             setError(`تنبيه: سينتهي حسابك خلال ${daysLeft} أيام`);
-            setTimeout(() => navigate(location.state?.from || "/"), 3000);
+            setTimeout(() => navigate(location.state?.from || "/"), 3500);
             return;
           }
         }
@@ -140,9 +114,8 @@ const Login = () => {
       } else {
         setError(result.error);
         setLoginAttempts((prev) => prev + 1);
-        setRemainingAttempts((prev) => Math.max(0, prev - 1));
 
-        // استخراج عدد المحاولات المتبقية من رسالة الخطأ
+        // استخراج عدد المحاولات المتبقية
         if (result.error.includes("محاولة")) {
           const match = result.error.match(/محاولة (\d+)\/(\d+)/);
           if (match) {
@@ -150,6 +123,8 @@ const Login = () => {
             const max = parseInt(match[2]);
             setRemainingAttempts(max - current);
           }
+        } else {
+          setRemainingAttempts((prev) => Math.max(0, prev - 1));
         }
       }
     } catch {
@@ -161,17 +136,6 @@ const Login = () => {
     }
   };
 
-  // مستوى الأمان
-  const getSecurityLevel = () => {
-    if (loginAttempts === 0)
-      return { level: "عادي", color: "success", icon: Security };
-    if (loginAttempts <= 2)
-      return { level: "مراقب", color: "warning", icon: Warning };
-    return { level: "عالي", color: "error", icon: Warning };
-  };
-
-  const securityLevel = getSecurityLevel();
-
   return (
     <Box
       sx={{
@@ -181,8 +145,8 @@ const Login = () => {
         justifyContent: "center",
         position: "relative",
         overflow: "hidden",
-        p: isMobile ? 1 : 0,
-        // خلفية أمنية وعسكرية محدثة
+        p: isMobile ? 1 : 2,
+        // خلفية أمنية وعسكرية محدثة (كما كانت)
         background: `
           radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.03) 0%, transparent 70%),
           radial-gradient(circle at 80% 20%, rgba(0, 255, 136, 0.05) 0%, transparent 70%),
@@ -193,7 +157,6 @@ const Login = () => {
           content: '""',
           position: "absolute",
           inset: 0,
-          // خلفية شبكة سايبر
           backgroundImage: `
             linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px),
@@ -212,7 +175,6 @@ const Login = () => {
           content: '""',
           position: "absolute",
           inset: 0,
-          // خطوط عسكرية متحركة
           background: `
             linear-gradient(45deg, transparent 30%, rgba(0, 255, 136, 0.02) 35%, rgba(0, 255, 136, 0.02) 65%, transparent 70%),
             linear-gradient(-45deg, transparent 30%, rgba(0, 255, 136, 0.015) 35%, rgba(0, 255, 136, 0.015) 65%, transparent 70%)
@@ -225,9 +187,7 @@ const Login = () => {
               transform: "translateX(-100px) translateY(-100px)",
               opacity: 0.3,
             },
-            "50%": {
-              opacity: 0.8,
-            },
+            "50%": { opacity: 0.8 },
             "100%": {
               transform: "translateX(100px) translateY(100px)",
               opacity: 0.3,
@@ -236,7 +196,7 @@ const Login = () => {
         },
       }}
     >
-      {/* مؤشرات أمنية متحركة في الزوايا */}
+      {/* مؤشرات أمنية متحركة في الزوايا (كما كانت) */}
       <Box
         sx={{
           position: "absolute",
@@ -246,10 +206,6 @@ const Login = () => {
           height: 40,
           background: "linear-gradient(180deg, #00ff88, transparent)",
           animation: "security-blink 3s ease-in-out infinite",
-          "@keyframes security-blink": {
-            "0%, 100%": { opacity: 0.3 },
-            "50%": { opacity: 1 },
-          },
         }}
       />
       <Box
@@ -285,10 +241,11 @@ const Login = () => {
           animation: "security-blink 3s ease-in-out infinite 0.5s",
         }}
       />
+      <style>{`@keyframes security-blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }`}</style>
 
       {/* مؤشر عدم الاتصال */}
       {!isConnected && (
-        <Slide direction="down" in>
+        <Slide direction="down" in={true}>
           <Alert
             severity="error"
             icon={<WifiOff />}
@@ -299,6 +256,7 @@ const Login = () => {
               right: 0,
               zIndex: 9999,
               borderRadius: 0,
+              justifyContent: "center",
             }}
           >
             لا يوجد اتصال بالإنترنت
@@ -306,7 +264,7 @@ const Login = () => {
         </Slide>
       )}
 
-      <Container maxWidth="sm" sx={{ position: "relative", zIndex: 2 }}>
+      <Container maxWidth="xs" sx={{ position: "relative", zIndex: 2 }}>
         <Fade in={animateElements} timeout={800}>
           <Card
             sx={{
@@ -316,172 +274,132 @@ const Login = () => {
               border: "1px solid rgba(0, 255, 136, 0.2)",
               borderRadius: 4,
               boxShadow: "0 25px 60px rgba(0, 255, 136, 0.15)",
-              overflow: "hidden",
-              position: "relative",
             }}
           >
-            {/* شريط حالة الاتصال */}
-            <Box
-              sx={{
-                background: isConnected
-                  ? "linear-gradient(90deg, #00ff88 0%, #00cc6a 100%)"
-                  : "linear-gradient(90deg, #ff4444 0%, #cc3333 100%)",
-                color: "#000",
-                py: 1,
-                px: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                fontSize: isMobile ? "0.8rem" : "0.9rem",
-                fontWeight: "bold",
-                letterSpacing: "0.05em",
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
-                  component="span"
-                  sx={{
-                    display: "inline-block",
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    backgroundColor: "#000",
-                    mr: 1,
-                    animation: isConnected ? "pulse 2s infinite" : "none",
-                    "@keyframes pulse": {
-                      "0%": { opacity: 1 },
-                      "50%": { opacity: 0.5 },
-                      "100%": { opacity: 1 },
-                    },
-                  }}
-                />
-                {isConnected ? "CONNECTED • SECURE" : "DISCONNECTED"}
-              </Box>
-
-              {/* مؤشر الأمان */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                <securityLevel.icon sx={{ fontSize: 16 }} />
-                <Typography variant="caption" sx={{ fontWeight: "bold" }}>
-                  {securityLevel.level}
-                </Typography>
-              </Box>
-            </Box>
-
-            <CardContent sx={{ p: isMobile ? 4 : 6 }}>
+            <CardContent sx={{ p: isMobile ? 3 : 4 }}>
               {/* الشعار والعلامة التجارية */}
               <Slide direction="down" in={animateElements} timeout={600}>
-                <Box sx={{ textAlign: "center", mb: 4 }}>
-                  {/* الشعار */}
+                <Box sx={{ textAlign: "center", mb: 3 }}>
+                  {/* مستطيل أخضر ناعم للوكو */}
                   <Box
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 1,
+                      display: "inline-block",
+                      p: 2,
+                      mb: 2,
+                      backgroundColor: "#00ff88",
+                      borderRadius: 3, // حواف ناعمة
+                      boxShadow: "0 8px 24px rgba(0, 255, 136, 0.3)",
+                      position: "relative",
+                      overflow: "hidden",
+                      // تأثير لمعان خفيف
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: "-100%",
+                        width: "100%",
+                        height: "100%",
+                        background:
+                          "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+                        animation: "logoShine 3s infinite",
+                      },
+                      "@keyframes logoShine": {
+                        "0%": { left: "-100%" },
+                        "100%": { left: "100%" },
+                      },
+                    }}
+                  >
+                    {/* الصورة مع طبقة سوداء */}
+                    <Box
+                      sx={{
+                        position: "relative",
+                        display: "inline-block",
+                        width: isMobile ? "60px" : "80px",
+                        height: isMobile ? "60px" : "80px",
+                      }}
+                    >
+                      <img
+                        src="/logo.png"
+                        alt="Rased Logo"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "contain",
+                          // طبقة سوداء فوق الصورة
+                          filter: "brightness(0) saturate(100%) invert(0%)",
+                          // أو يمكنك استخدام:
+                          // filter: "brightness(0.1) contrast(2)",
+                        }}
+                      />
+
+                      {/* طبقة إضافية للتأكد من اللون الأسود */}
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          background: "rgba(0, 0, 0, 0.1)", // طبقة خفيفة إضافية
+                          mixBlendMode: "multiply", // دمج الألوان
+                          pointerEvents: "none",
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  {/* اسم المنصة */}
+                  <Typography
+                    variant={isMobile ? "h4" : "h3"}
+                    sx={{
+                      color: "#00ff88",
+                      fontWeight: "bold",
+                      textShadow: "0 0 20px rgba(0, 255, 136, 0.5)",
                       mb: 1,
                     }}
                   >
-                    <Typography
-                      variant={isMobile ? "h4" : "h3"}
-                      sx={{
-                        color: "#00ff88",
-                        fontWeight: "bold",
-                        fontSize: isMobile ? "2rem" : "2.5rem",
-                        letterSpacing: "0.1em",
-                        textShadow: "0 0 20px rgba(0, 255, 136, 0.5)",
-                      }}
-                    >
-                      راصد
-                    </Typography>
-                  </Box>
+                    راصد
+                  </Typography>
 
                   <Typography
-                    variant="h6"
+                    variant="body1"
                     sx={{
-                      color: "rgba(255, 255, 255, 0.8)",
+                      color: "rgba(255, 255, 255, 0.7)",
                       fontSize: isMobile ? "0.9rem" : "1rem",
-                      mb: 1,
                     }}
                   >
                     منصة التحليل المتقدمة للاتصالات
                   </Typography>
-
-                  {/* مؤشر الحماية */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      gap: 1,
-                      mt: 2,
-                    }}
-                  >
-                    <Chip
-                      label="🔐 ENCRYPTED"
-                      size="small"
-                      sx={{
-                        backgroundColor: "rgba(0, 255, 136, 0.1)",
-                        color: "#00ff88",
-                        fontSize: "0.7rem",
-                      }}
-                    />
-                    <Chip
-                      label="🛡️ SECURED"
-                      size="small"
-                      sx={{
-                        backgroundColor: "rgba(0, 255, 136, 0.1)",
-                        color: "#00ff88",
-                        fontSize: "0.7rem",
-                      }}
-                    />
-                  </Box>
                 </Box>
               </Slide>
 
               {/* نموذج تسجيل الدخول */}
               <Slide direction="up" in={animateElements} timeout={800}>
-                <Box component="form" onSubmit={handleSubmit}>
-                  {/* تحذيرات المحاولات */}
-                  {loginAttempts > 0 && (
-                    <Alert
-                      severity={remainingAttempts <= 2 ? "error" : "warning"}
-                      sx={{
-                        mb: 3,
-                        background:
-                          remainingAttempts <= 2
-                            ? "rgba(255, 23, 68, 0.1)"
-                            : "rgba(255, 152, 0, 0.1)",
-                        border:
-                          remainingAttempts <= 2
-                            ? "1px solid rgba(255, 23, 68, 0.3)"
-                            : "1px solid rgba(255, 152, 0, 0.3)",
-                      }}
-                    >
-                      {remainingAttempts > 0
-                        ? `تبقى ${remainingAttempts} محاولة قبل قفل الحساب`
-                        : "تم استنفاد جميع المحاولات"}
-                    </Alert>
-                  )}
-
-                  {/* تحذير الخطأ */}
+                <Box component="form" onSubmit={handleSubmit} noValidate>
+                  {/* التنبيهات */}
                   {error && (
                     <Alert
                       severity={error.includes("تنبيه") ? "warning" : "error"}
-                      sx={{
-                        mb: 3,
-                        background: error.includes("تنبيه")
-                          ? "rgba(255, 152, 0, 0.1)"
-                          : "rgba(255, 23, 68, 0.1)",
-                        border: error.includes("تنبيه")
-                          ? "1px solid rgba(255, 152, 0, 0.3)"
-                          : "1px solid rgba(255, 23, 68, 0.3)",
-                      }}
+                      sx={{ mb: 2 }}
                       onClose={() => setError("")}
                     >
                       {error}
                     </Alert>
                   )}
+                  {loginAttempts > 0 && remainingAttempts > 0 && (
+                    <Alert
+                      severity={remainingAttempts <= 2 ? "error" : "warning"}
+                      sx={{ mb: 2 }}
+                    >
+                      {`تبقى ${remainingAttempts} محاولة.`}
+                    </Alert>
+                  )}
+                  {remainingAttempts === 0 && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      تم استنفاد جميع المحاولات.
+                    </Alert>
+                  )}
 
-                  {/* حقل اسم المستخدم */}
                   <TextField
                     fullWidth
                     label="اسم المستخدم"
@@ -489,160 +407,54 @@ const Login = () => {
                     onChange={(e) => updateFormData("username", e.target.value)}
                     required
                     disabled={loading || remainingAttempts === 0}
-                    sx={{
-                      mb: 3,
-                      "& .MuiOutlinedInput-root": {
-                        background: "rgba(255, 255, 255, 0.05)",
-                        "& fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.2)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#00ff88",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#00ff88",
-                          borderWidth: 2,
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "rgba(255, 255, 255, 0.7)",
-                        "&.Mui-focused": {
-                          color: "#00ff88",
-                        },
-                      },
-                      "& .MuiInputBase-input": {
-                        color: "#fff",
-                        direction: "ltr",
-                        fontSize: isMobile ? "1rem" : "1.1rem",
-                      },
-                    }}
+                    sx={{ mb: 3 }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <UserIcon sx={{ color: "#00ff88" }} />
+                          <UserIcon sx={{ color: "rgba(0, 255, 136, 0.7)" }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    fullWidth
+                    label="كلمة المرور"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => updateFormData("password", e.target.value)}
+                    required
+                    disabled={loading || remainingAttempts === 0}
+                    sx={{ mb: 3 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockIcon sx={{ color: "rgba(0, 255, 136, 0.7)" }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            disabled={loading}
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
                         </InputAdornment>
                       ),
                     }}
                   />
 
-                  {/* حقل كلمة المرور */}
-                  <Box>
-                    <TextField
-                      fullWidth
-                      label="كلمة المرور"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) =>
-                        updateFormData("password", e.target.value)
-                      }
-                      required
-                      disabled={loading || remainingAttempts === 0}
-                      sx={{
-                        mb: passwordStrength ? 1 : 4,
-                        "& .MuiOutlinedInput-root": {
-                          background: "rgba(255, 255, 255, 0.05)",
-                          "& fieldset": {
-                            borderColor: "rgba(255, 255, 255, 0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "#00ff88",
-                          },
-                          "&.Mui-focused fieldset": {
-                            borderColor: "#00ff88",
-                            borderWidth: 2,
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255, 255, 255, 0.7)",
-                          "&.Mui-focused": {
-                            color: "#00ff88",
-                          },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                          fontSize: isMobile ? "1rem" : "1.1rem",
-                        },
-                      }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LockIcon sx={{ color: "#00ff88" }} />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              disabled={loading}
-                              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
-                            >
-                              {showPassword ? (
-                                <VisibilityOff />
-                              ) : (
-                                <Visibility />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    {/* مؤشر قوة كلمة المرور */}
-                    {passwordStrength && (
-                      <Box sx={{ mb: 3 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            mb: 0.5,
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{ color: "rgba(255,255,255,0.7)" }}
-                          >
-                            قوة كلمة المرور
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color:
-                                passwordStrength.color === "error"
-                                  ? "#f44336"
-                                  : passwordStrength.color === "warning"
-                                  ? "#ff9800"
-                                  : "#4caf50",
-                            }}
-                          >
-                            {passwordStrength.label}
-                          </Typography>
-                        </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={passwordStrength.score}
-                          color={passwordStrength.color}
-                          sx={{
-                            height: 4,
-                            borderRadius: 2,
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          }}
-                        />
-                      </Box>
-                    )}
-                  </Box>
-
                   {/* زر تسجيل الدخول الدائري */}
                   <Box
-                    sx={{ display: "flex", justifyContent: "center", mb: 3 }}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      mt: 2,
+                      mb: 2,
+                    }}
                   >
-                    <Box
-                      sx={{
-                        position: "relative",
-                        width: isMobile ? 100 : 120,
-                        height: isMobile ? 100 : 120,
-                      }}
-                    >
+                    <Box sx={{ position: "relative", width: 90, height: 90 }}>
                       {/* الحدود المتحركة */}
                       <Box
                         sx={{
@@ -653,7 +465,7 @@ const Login = () => {
                             "conic-gradient(from 0deg, #00ff88, #00cc6a, #00ff88)",
                           padding: "2px",
                           animation: loading
-                            ? "spin 2s linear infinite"
+                            ? "spin 1.5s linear infinite"
                             : "none",
                           "@keyframes spin": {
                             from: { transform: "rotate(0deg)" },
@@ -683,23 +495,15 @@ const Login = () => {
                               remainingAttempts === 0
                             }
                             sx={{
-                              width: isMobile ? 70 : 80,
-                              height: isMobile ? 70 : 80,
+                              width: 70,
+                              height: 70,
                               borderRadius: "50%",
-                              background: loading
-                                ? "rgba(255, 255, 255, 0.1)"
-                                : "linear-gradient(45deg, #00ff88 0%, #00cc6a 100%)",
-                              color: loading ? "#fff" : "#000",
+                              background: "transparent",
                               border: "none",
                               minWidth: "auto",
-                              fontSize: isMobile ? "1rem" : "1.2rem",
-                              fontWeight: "bold",
                               transition: "all 0.3s ease",
                               "&:hover": {
-                                transform: !loading ? "scale(1.05)" : "none",
-                                boxShadow: !loading
-                                  ? "0 0 25px rgba(0, 255, 136, 0.6)"
-                                  : "none",
+                                background: "rgba(0, 255, 136, 0.1)",
                               },
                               "&:disabled": {
                                 background: "rgba(255, 255, 255, 0.1)",
@@ -709,15 +513,12 @@ const Login = () => {
                           >
                             {loading ? (
                               <CircularProgress
-                                size={isMobile ? 20 : 24}
-                                sx={{ color: "#fff" }}
+                                size={32}
+                                sx={{ color: "#00ff88" }}
                               />
                             ) : (
-                              <PlaneIcon
-                                sx={{
-                                  fontSize: isMobile ? 24 : 28,
-                                  transform: "rotate(45deg)",
-                                }}
+                              <Fingerprint
+                                sx={{ fontSize: 40, color: "#00ff88" }}
                               />
                             )}
                           </Button>
@@ -730,78 +531,47 @@ const Login = () => {
 
               {/* التذييل */}
               <Fade in={animateElements} timeout={1200}>
-                <Box sx={{ mt: 4, textAlign: "center" }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "rgba(255, 255, 255, 0.5)",
-                      fontSize: isMobile ? "0.7rem" : "0.75rem",
-                      mb: 1,
-                      display: "block",
-                    }}
-                  >
-                    🔒 نظام محمي ومشفر • راصد الإصدار 2.0
-                  </Typography>
-
-                  {/* معلومات التطوير */}
-                  {process.env.NODE_ENV === "development" && (
-                    <Box sx={{ mt: 1 }}>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "#ffc107",
-                          fontFamily: "monospace",
-                          fontSize: isMobile ? "0.65rem" : "0.7rem",
-                        }}
-                      >
-                        🚧 بيئة التطوير - admin / Admin@123
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    textAlign: "center",
+                    color: "rgba(255, 255, 255, 0.5)",
+                    mt: 2,
+                  }}
+                >
+                  نظام آمن • اتصال مشفر • الإصدار 2.0
+                </Typography>
               </Fade>
             </CardContent>
           </Card>
         </Fade>
       </Container>
-
-      {/* شاشة التحميل الكاملة */}
-      {loading && (
-        <Fade in={loading}>
-          <Box
-            sx={{
-              position: "fixed",
-              inset: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.8)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              backdropFilter: "blur(5px)",
-            }}
-          >
-            <Box
-              sx={{
-                backgroundColor: "rgba(15, 15, 15, 0.95)",
-                p: isMobile ? 3 : 4,
-                borderRadius: 2,
-                border: "1px solid rgba(0, 255, 136, 0.3)",
-                textAlign: "center",
-                minWidth: isMobile ? "80%" : 300,
-              }}
-            >
-              <CircularProgress sx={{ color: "#00ff88", mb: 2 }} />
-              <Typography
-                sx={{ color: "white", fontSize: isMobile ? "0.9rem" : "1rem" }}
-              >
-                جاري التحقق من بيانات الدخول...
-              </Typography>
-            </Box>
-          </Box>
-        </Fade>
-      )}
     </Box>
   );
+};
+
+// يمكنك دمج هذا الكائن في `theme.components.MuiTextField` في ملف الثيم الرئيسي لتطبيق الأنماط بشكل عام
+const MuiTextFieldStyles = {
+  styleOverrides: {
+    root: {
+      "& .MuiOutlinedInput-root": {
+        background: "rgba(0, 0, 0, 0.2)",
+        "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+        "&:hover fieldset": { borderColor: "rgba(0, 255, 136, 0.7)" },
+        "&.Mui-focused fieldset": {
+          borderColor: "#00ff88",
+          borderWidth: "1px",
+        },
+      },
+      "& .MuiInputLabel-root": {
+        color: "rgba(255, 255, 255, 0.7)",
+        "&.Mui-focused": { color: "#00ff88" },
+      },
+      "& .MuiInputBase-input": { color: "#fff" },
+      "& .MuiIconButton-root": { color: "rgba(255, 255, 255, 0.7)" },
+    },
+  },
 };
 
 export default Login;

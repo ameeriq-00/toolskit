@@ -1,3 +1,168 @@
+// App constants - محدث مع تحسين الأحجام والمساحات
+export const APP_CONFIG = {
+  DRAWER_WIDTH: 280, // زيادة العرض قليلاً لاستيعاب المحتوى الجديد
+  DRAWER_WIDTH_COLLAPSED: 64,
+  APP_NAME: "راصد",
+  APP_NAME_EN: "RASED",
+  VERSION: "2.0.0",
+  COPYRIGHT: "إعداد وبرمجة الملازم المهندس أمير علي منذور",
+  DEVELOPER: "الملازم المهندس أمير علي منذور",
+  MOBILE_COPYRIGHT: "إعداد وبرمجة\nالملازم المهندس أمير علي منذور",
+};
+
+// Technology colors
+export const TECH_COLORS = {
+  "2G": "#f44336",
+  "3G": "#ff9800",
+  "4G": "#4caf50",
+  Z_Format: "#2196f3",
+  Z: "#2196f3",
+};
+
+// Theme colors - محدث مع تحسين الألوان
+export const THEME_COLORS = {
+  PRIMARY: "#00ff88",
+  SECONDARY: "#00cc6a",
+  SUCCESS: "#4caf50",
+  WARNING: "#ff9800",
+  ERROR: "#f44336",
+  INFO: "#2196f3",
+  BACKGROUND: "#0a0a0a",
+  SURFACE: "#1a1a1a",
+  BORDER: "rgba(255, 255, 255, 0.08)",
+  HOVER: "rgba(0, 255, 136, 0.05)",
+  ACTIVE: "rgba(0, 255, 136, 0.1)",
+};
+
+// Spacing system - محدث للحصول على تخطيط أكثر انضباطاً
+export const SPACING = {
+  UNIT: 4, // base unit in pixels
+  XS: 4, // 0.25rem
+  SM: 8, // 0.5rem
+  MD: 12, // 0.75rem
+  LG: 16, // 1rem
+  XL: 24, // 1.5rem
+  XXL: 32, // 2rem
+};
+
+// Typography scale - محدث مع أحجام أصغر وأكثر انضباطاً
+export const TYPOGRAPHY_SCALE = {
+  H1: "clamp(1.75rem, 4vw, 2.5rem)",
+  H2: "clamp(1.5rem, 3.5vw, 2rem)",
+  H3: "clamp(1.25rem, 3vw, 1.75rem)",
+  H4: "clamp(1.1rem, 2.5vw, 1.5rem)",
+  H5: "clamp(1rem, 2vw, 1.25rem)",
+  H6: "clamp(0.95rem, 1.8vw, 1.1rem)",
+  BODY1: "clamp(0.85rem, 1.3vw, 0.9rem)",
+  BODY2: "clamp(0.8rem, 1.2vw, 0.85rem)",
+  CAPTION: "clamp(0.7rem, 1vw, 0.75rem)",
+  BUTTON: "clamp(0.8rem, 1.2vw, 0.85rem)",
+};
+
+// Layout dimensions - محدث
+export const LAYOUT = {
+  HEADER_HEIGHT: 64,
+  HEADER_HEIGHT_MOBILE: 56,
+  SIDEBAR_WIDTH: 280, // تحديث العرض ليتطابق مع APP_CONFIG
+  SIDEBAR_WIDTH_COLLAPSED: 64,
+  CONTENT_MAX_WIDTH: 1200,
+  BORDER_WIDTH: 1,
+  BORDER_RADIUS: 0, // حواف مربعة للسايد بار والتوب بار فقط
+};
+
+// Component heights - محدث للحصول على تصميم أكثر انضباطاً
+export const COMPONENT_HEIGHTS = {
+  BUTTON: 36,
+  BUTTON_SMALL: 32,
+  BUTTON_LARGE: 40,
+  INPUT: 40,
+  INPUT_SMALL: 36,
+  LIST_ITEM: 36,
+  LIST_ITEM_SMALL: 32,
+  TAB: 44,
+  TAB_MOBILE: 40,
+  CHIP: 24,
+  CHIP_SMALL: 20,
+};
+
+// Breakpoints
+export const BREAKPOINTS = {
+  XS: 0,
+  SM: 600,
+  MD: 900,
+  LG: 1200,
+  XL: 1536,
+};
+
+// Shadow system - محدث مع ظلال أقل حدة
+export const SHADOWS = {
+  NONE: "none",
+  XS: "0 1px 2px rgba(0, 0, 0, 0.1)",
+  SM: "0 1px 4px rgba(0, 0, 0, 0.2)",
+  MD: "0 2px 8px rgba(0, 0, 0, 0.3)",
+  LG: "0 4px 16px rgba(0, 0, 0, 0.4)",
+  XL: "0 8px 32px rgba(0, 0, 0, 0.5)",
+  PRIMARY: "0 2px 8px rgba(0, 255, 136, 0.2)",
+  PRIMARY_HOVER: "0 4px 12px rgba(0, 255, 136, 0.3)",
+};
+
+// Animation durations
+export const TRANSITIONS = {
+  FAST: "0.1s",
+  NORMAL: "0.2s",
+  SLOW: "0.3s",
+  EASE: "ease",
+  EASE_IN: "ease-in",
+  EASE_OUT: "ease-out",
+  EASE_IN_OUT: "ease-in-out",
+};
+
+// Z-index system
+export const Z_INDEX = {
+  HIDE: -1,
+  BASE: 0,
+  BELOW: 1,
+  NORMAL: 10,
+  TOOLTIP: 1000,
+  MODAL: 1300,
+  SNACKBAR: 1400,
+  DRAWER: 1200,
+  APP_BAR: 1100,
+};
+
+// Grid system
+export const GRID = {
+  COLUMNS: 12,
+  GUTTER: 16,
+  GUTTER_MOBILE: 8,
+  CONTAINER_PADDING: 24,
+  CONTAINER_PADDING_MOBILE: 16,
+};
+
+// Icon sizes
+export const ICON_SIZES = {
+  XS: 12,
+  SM: 16,
+  MD: 20,
+  LG: 24,
+  XL: 32,
+  XXL: 48,
+};
+
+// Border system
+export const BORDERS = {
+  NONE: "none",
+  THIN: "1px solid",
+  MEDIUM: "2px solid",
+  THICK: "3px solid",
+  RADIUS: 8, // نعومة طبيعية للعناصر العادية
+  RADIUS_LARGE: 12, // للبطاقات الكبيرة
+  RADIUS_SMALL: 4, // للعناصر الصغيرة
+  COLOR_DEFAULT: "rgba(255, 255, 255, 0.08)",
+  COLOR_PRIMARY: "rgba(0, 255, 136, 0.2)",
+  COLOR_HOVER: "rgba(0, 255, 136, 0.3)",
+};
+
 // Navigation menu structure
 export const NAVIGATION_ITEMS = [
   {
@@ -76,7 +241,7 @@ export const NAVIGATION_ITEMS = [
       {
         id: "system-activities",
         title: "سجل النشاطات",
-        icon: "Timeline", 
+        icon: "Timeline",
         path: "/system-activities",
         permissions: ["view_activities"],
       },
@@ -118,99 +283,38 @@ export const SITE_TYPES = [
   { value: "z", label: "Z Format", description: "تنسيق Z" },
 ];
 
-// Technology colors
-export const TECH_COLORS = {
-  "2G": "#f44336",
-  "3G": "#ff9800", 
-  "4G": "#4caf50",
-  Z_Format: "#2196f3",
-  Z: "#2196f3",
-};
-
-// App constants - محدث مع معلومات المطور
-export const APP_CONFIG = {
-  DRAWER_WIDTH: 280,
-  DRAWER_WIDTH_COLLAPSED: 64,
-  APP_NAME: "راصد",
-  APP_NAME_EN: "RASED",
-  VERSION: "2.0.0",
-  COPYRIGHT: "إعداد وبرمجة الملازم المهندس أمير علي منذور",
-  DEVELOPER: "الملازم المهندس أمير علي منذور",
-  MOBILE_COPYRIGHT: "إعداد وبرمجة\nالملازم المهندس أمير علي منذور",
-};
-
-// API endpoints
-export const API_ENDPOINTS = {
-  // Authentication
-  LOGIN: "/api/auth/login/",
-  LOGOUT: "/api/auth/logout/",
-  USER_INFO: "/api/auth/user-info/",
-  CHANGE_PASSWORD: "/api/auth/change-password/",
-  MY_ACTIVITIES: "/api/auth/my-activities/",
-  MY_SESSIONS: "/api/auth/my-sessions/",
-  SECURITY_DASHBOARD: "/api/auth/security-dashboard/",
-  
-  // User Management
-  USERS: "/api/admin/users/",
-  USER_DETAILS: "/api/admin/users/{id}/",
-  CREATE_USER: "/api/admin/users/create/",
-  UPDATE_USER: "/api/admin/users/{id}/update/",
-  DELETE_USER: "/api/admin/users/{id}/delete/",
-  ACTIVATE_USER: "/api/admin/users/{id}/activate/",
-  DEACTIVATE_USER: "/api/admin/users/{id}/deactivate/",
-  
-  // Roles and Permissions
-  ROLES: "/api/admin/roles/",
-  PERMISSIONS: "/api/admin/permissions/",
-  
-  // System Activities
-  SYSTEM_ACTIVITIES: "/api/admin/activities/",
-  SECURITY_ALERTS: "/api/admin/security-alerts/",
-  DASHBOARD_STATS: "/api/admin/dashboard-stats/",
-  
-  // Analysis
-  ANALYZE_EXCEL: "/api/analyze-excel/",
-  ANALYZE_EXCEL_Z: "/api/analyze-excel-z/",
-  COMPARE_SHEETS: "/api/compare-sheets/",
-  
-  // Sites
-  SITE_STATISTICS: "/api/sites/statistics/",
-  SITE_SEARCH: "/api/sites/simplified-search/",
-  SITE_UPLOAD: "/api/sites/upload/",
-};
-
 // Permission definitions
 export const PERMISSIONS = {
   // User Management
   VIEW_USERS: "view_users",
-  CREATE_USERS: "create_users", 
+  CREATE_USERS: "create_users",
   EDIT_USERS: "edit_users",
   DELETE_USERS: "delete_users",
-  
+
   // Role Management
   VIEW_ROLES: "view_roles",
   CREATE_ROLES: "create_roles",
   EDIT_ROLES: "edit_roles",
   DELETE_ROLES: "delete_roles",
-  
+
   // Security & Monitoring
   VIEW_ACTIVITIES: "view_activities",
   VIEW_SECURITY_ALERTS: "view_security_alerts",
   MANAGE_SESSIONS: "manage_sessions",
-  
+
   // Data Analysis
   ANALYZE_EXCEL: "analyze_excel",
   COMPARE_SHEETS: "compare_sheets",
-  
+
   // Site Management
   UPLOAD_SITES: "upload_sites",
   SEARCH_SITES: "search_sites",
   MANAGE_SITES: "manage_sites",
-  
+
   // Statistics & Reports
   VIEW_STATISTICS: "view_statistics",
   GENERATE_REPORTS: "generate_reports",
-  
+
   // System Management
   MANAGE_SYSTEM: "manage_system",
   BACKUP_RESTORE: "backup_restore",
@@ -225,7 +329,7 @@ export const USER_ROLES = {
     color: "error",
   },
   ANALYST: {
-    name: "analyst", 
+    name: "analyst",
     display_name: "محلل",
     permissions: [
       PERMISSIONS.ANALYZE_EXCEL,
@@ -237,11 +341,8 @@ export const USER_ROLES = {
   },
   OPERATOR: {
     name: "operator",
-    display_name: "مشغل", 
-    permissions: [
-      PERMISSIONS.SEARCH_SITES,
-      PERMISSIONS.VIEW_STATISTICS,
-    ],
+    display_name: "مشغل",
+    permissions: [PERMISSIONS.SEARCH_SITES, PERMISSIONS.VIEW_STATISTICS],
     color: "secondary",
   },
   UPLOADER: {
@@ -257,64 +358,15 @@ export const USER_ROLES = {
   VIEWER: {
     name: "viewer",
     display_name: "مشاهد",
-    permissions: [
-      PERMISSIONS.VIEW_STATISTICS,
-    ],
+    permissions: [PERMISSIONS.VIEW_STATISTICS],
     color: "default",
   },
-};
-
-// Activity types for logging
-export const ACTIVITY_TYPES = {
-  LOGIN: "login",
-  LOGOUT: "logout", 
-  CREATE: "create",
-  UPDATE: "update",
-  DELETE: "delete",
-  VIEW: "view",
-  UPLOAD: "upload",
-  DOWNLOAD: "download",
-  SEARCH: "search",
-  ANALYZE: "analyze",
-  PASSWORD_CHANGE: "password_change",
-  FAILED_LOGIN: "failed_login",
-  ACCOUNT_LOCKED: "account_locked",
-};
-
-// Security alert types
-export const ALERT_TYPES = {
-  FAILED_LOGIN: "failed_login",
-  ACCOUNT_LOCKED: "account_locked", 
-  SUSPICIOUS_ACTIVITY: "suspicious_activity",
-  MULTIPLE_SESSIONS: "multiple_sessions",
-  PERMISSION_VIOLATION: "permission_violation",
-  DATA_ACCESS: "data_access",
-};
-
-// Alert severity levels
-export const ALERT_SEVERITY = {
-  LOW: "low",
-  MEDIUM: "medium",
-  HIGH: "high", 
-  CRITICAL: "critical",
-};
-
-// Theme colors
-export const THEME_COLORS = {
-  PRIMARY: "#00ff88",
-  SECONDARY: "#00cc6a",
-  SUCCESS: "#4caf50",
-  WARNING: "#ff9800",
-  ERROR: "#f44336",
-  INFO: "#2196f3",
-  BACKGROUND: "#0f0f0f",
-  SURFACE: "#1a1a1a",
 };
 
 // File upload limits
 export const UPLOAD_LIMITS = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_EXTENSIONS: ['.xlsx', '.xls'],
+  ALLOWED_EXTENSIONS: [".xlsx", ".xls"],
   MAX_FILES_PER_UPLOAD: 5,
 };
 
@@ -330,74 +382,6 @@ export const DATE_FORMATS = {
   DISPLAY_WITH_TIME: "DD/MM/YYYY HH:mm",
   API: "YYYY-MM-DD",
   API_WITH_TIME: "YYYY-MM-DD HH:mm:ss",
-};
-
-// Local storage keys
-export const STORAGE_KEYS = {
-  TOKEN: "token",
-  SESSION_KEY: "sessionKey",
-  USER_INFO: "userInfo",
-  THEME_PREFERENCE: "themePreference",
-  LANGUAGE: "language",
-  SIDEBAR_COLLAPSED: "sidebarCollapsed",
-};
-
-// Status messages
-export const STATUS_MESSAGES = {
-  LOADING: "جاري التحميل...",
-  SAVING: "جاري الحفظ...",
-  DELETING: "جاري الحذف...",
-  SUCCESS: "تم بنجاح",
-  ERROR: "حدث خطأ",
-  NO_DATA: "لا توجد بيانات",
-  UNAUTHORIZED: "غير مصرح",
-  FORBIDDEN: "ممنوع",
-  NOT_FOUND: "غير موجود",
-  SERVER_ERROR: "خطأ في الخادم",
-  NETWORK_ERROR: "خطأ في الشبكة",
-  VALIDATION_ERROR: "خطأ في التحقق",
-};
-
-// Default values
-export const DEFAULTS = {
-  PAGE: 1,
-  PER_PAGE: 20,
-  TIMEOUT: 30000, // 30 seconds
-  REFRESH_INTERVAL: 300000, // 5 minutes
-  SESSION_WARNING_TIME: 300000, // 5 minutes before expiry
-  MAX_LOGIN_ATTEMPTS: 5,
-  ACCOUNT_LOCKOUT_DURATION: 30, // minutes
-  PASSWORD_MIN_LENGTH: 8,
-  SEARCH_DEBOUNCE_DELAY: 500, // milliseconds
-};
-
-// Validation rules
-export const VALIDATION = {
-  USERNAME: {
-    MIN_LENGTH: 3,
-    MAX_LENGTH: 30,
-    PATTERN: /^[a-zA-Z0-9_]+$/,
-    ERROR_MESSAGE: "اسم المستخدم يجب أن يحتوي على 3-30 حرف (أحرف وأرقام فقط)",
-  },
-  PASSWORD: {
-    MIN_LENGTH: 8,
-    MAX_LENGTH: 128,
-    REQUIRE_UPPERCASE: true,
-    REQUIRE_LOWERCASE: true,
-    REQUIRE_DIGIT: true,
-    REQUIRE_SPECIAL: true,
-    SPECIAL_CHARS: "!@#$%^&*()_+-=[]{}|;:,.<>?",
-    ERROR_MESSAGE:
-      "كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل مع حروف كبيرة وصغيرة وأرقام ورموز خاصة",
-  },
-  EMAIL: {
-    PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    ERROR_MESSAGE: "يرجى إدخال بريد إلكتروني صحيح",
-  },
-  PHONE: {
-    PATTERN: /^07\d{8}$/,
-    ERROR_MESSAGE: "يرجى إدخال رقم هاتف عراقي صحيح (07xxxxxxxx)",
-  },
 };
 
 // Chart colors for analytics
@@ -425,55 +409,22 @@ export const MAP_CONFIG = {
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 };
 
-// Export all constants as a single object for easier importing
-export const CONSTANTS = {
-  NAVIGATION_ITEMS,
-  SITE_TYPES,
-  TECH_COLORS,
-  APP_CONFIG,
-  API_ENDPOINTS,
-  PERMISSIONS,
-  USER_ROLES,
-  ACTIVITY_TYPES,
-  ALERT_TYPES,
-  ALERT_SEVERITY,
-  THEME_COLORS,
-  UPLOAD_LIMITS,
-  PAGINATION,
-  DATE_FORMATS,
-  STORAGE_KEYS,
-  STATUS_MESSAGES,
-  DEFAULTS,
-  VALIDATION,
-  CHART_COLORS,
-  MAP_CONFIG,
-};
-
-// Helper functions for constants
+// Helper functions
 export const getPermissionDisplayName = (permission) => {
   const permissionNames = {
     [PERMISSIONS.VIEW_USERS]: "عرض المستخدمين",
     [PERMISSIONS.CREATE_USERS]: "إنشاء مستخدمين",
     [PERMISSIONS.EDIT_USERS]: "تعديل المستخدمين",
     [PERMISSIONS.DELETE_USERS]: "حذف المستخدمين",
-    [PERMISSIONS.VIEW_ROLES]: "عرض الأدوار",
-    [PERMISSIONS.CREATE_ROLES]: "إنشاء أدوار",
-    [PERMISSIONS.EDIT_ROLES]: "تعديل الأدوار",
-    [PERMISSIONS.DELETE_ROLES]: "حذف الأدوار",
-    [PERMISSIONS.VIEW_ACTIVITIES]: "عرض النشاطات",
-    [PERMISSIONS.VIEW_SECURITY_ALERTS]: "عرض التنبيهات الأمنية",
-    [PERMISSIONS.MANAGE_SESSIONS]: "إدارة الجلسات",
     [PERMISSIONS.ANALYZE_EXCEL]: "تحليل ملفات Excel",
     [PERMISSIONS.COMPARE_SHEETS]: "مقارنة الملفات",
-    [PERMISSIONS.UPLOAD_SITES]: "رفع بيانات الأبراج",
     [PERMISSIONS.SEARCH_SITES]: "البحث في الأبراج",
+    [PERMISSIONS.UPLOAD_SITES]: "رفع بيانات الأبراج",
     [PERMISSIONS.MANAGE_SITES]: "إدارة بيانات الأبراج",
     [PERMISSIONS.VIEW_STATISTICS]: "عرض الإحصائيات",
-    [PERMISSIONS.GENERATE_REPORTS]: "إنشاء التقارير",
-    [PERMISSIONS.MANAGE_SYSTEM]: "إدارة النظام",
-    [PERMISSIONS.BACKUP_RESTORE]: "النسخ الاحتياطي والاستعادة",
+    [PERMISSIONS.VIEW_ACTIVITIES]: "عرض النشاطات",
+    [PERMISSIONS.VIEW_SECURITY_ALERTS]: "عرض التنبيهات الأمنية",
   };
-
   return permissionNames[permission] || permission;
 };
 
@@ -482,55 +433,11 @@ export const getRoleColor = (roleName) => {
   return role ? role.color : "default";
 };
 
-export const getActivityTypeDisplayName = (activityType) => {
-  const activityNames = {
-    [ACTIVITY_TYPES.LOGIN]: "تسجيل دخول",
-    [ACTIVITY_TYPES.LOGOUT]: "تسجيل خروج",
-    [ACTIVITY_TYPES.CREATE]: "إنشاء",
-    [ACTIVITY_TYPES.UPDATE]: "تحديث",
-    [ACTIVITY_TYPES.DELETE]: "حذف",
-    [ACTIVITY_TYPES.VIEW]: "عرض",
-    [ACTIVITY_TYPES.UPLOAD]: "رفع",
-    [ACTIVITY_TYPES.DOWNLOAD]: "تحميل",
-    [ACTIVITY_TYPES.SEARCH]: "بحث",
-    [ACTIVITY_TYPES.ANALYZE]: "تحليل",
-    [ACTIVITY_TYPES.PASSWORD_CHANGE]: "تغيير كلمة مرور",
-    [ACTIVITY_TYPES.FAILED_LOGIN]: "محاولة دخول فاشلة",
-    [ACTIVITY_TYPES.ACCOUNT_LOCKED]: "قفل حساب",
-  };
-
-  return activityNames[activityType] || activityType;
-};
-
-export const getAlertSeverityColor = (severity) => {
-  const severityColors = {
-    [ALERT_SEVERITY.LOW]: "info",
-    [ALERT_SEVERITY.MEDIUM]: "warning",
-    [ALERT_SEVERITY.HIGH]: "error",
-    [ALERT_SEVERITY.CRITICAL]: "error",
-  };
-
-  return severityColors[severity] || "default";
-};
-
-export const getAlertSeverityDisplayName = (severity) => {
-  const severityNames = {
-    [ALERT_SEVERITY.LOW]: "منخفض",
-    [ALERT_SEVERITY.MEDIUM]: "متوسط",
-    [ALERT_SEVERITY.HIGH]: "عالي",
-    [ALERT_SEVERITY.CRITICAL]: "حرج",
-  };
-
-  return severityNames[severity] || severity;
-};
-
 export const formatFileSize = (bytes) => {
   if (bytes === 0) return "0 Bytes";
-
   const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 };
 
@@ -542,68 +449,32 @@ export const isValidFileType = (
   return allowedExtensions.includes(extension);
 };
 
-export const validatePassword = (password) => {
-  const rules = VALIDATION.PASSWORD;
-  const errors = [];
-
-  if (password.length < rules.MIN_LENGTH) {
-    errors.push(`كلمة المرور يجب أن تكون ${rules.MIN_LENGTH} أحرف على الأقل`);
-  }
-
-  if (password.length > rules.MAX_LENGTH) {
-    errors.push(`كلمة المرور يجب أن تكون ${rules.MAX_LENGTH} حرف على الأكثر`);
-  }
-
-  if (rules.REQUIRE_UPPERCASE && !/[A-Z]/.test(password)) {
-    errors.push("كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل");
-  }
-
-  if (rules.REQUIRE_LOWERCASE && !/[a-z]/.test(password)) {
-    errors.push("كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل");
-  }
-
-  if (rules.REQUIRE_DIGIT && !/\d/.test(password)) {
-    errors.push("كلمة المرور يجب أن تحتوي على رقم واحد على الأقل");
-  }
-
-  if (
-    rules.REQUIRE_SPECIAL &&
-    !new RegExp(
-      `[${rules.SPECIAL_CHARS.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}]`
-    ).test(password)
-  ) {
-    errors.push("كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل");
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors: errors,
-    strength: calculatePasswordStrength(password),
-  };
+export default {
+  APP_CONFIG,
+  TECH_COLORS,
+  THEME_COLORS,
+  SPACING,
+  TYPOGRAPHY_SCALE,
+  LAYOUT,
+  COMPONENT_HEIGHTS,
+  BREAKPOINTS,
+  SHADOWS,
+  TRANSITIONS,
+  Z_INDEX,
+  GRID,
+  ICON_SIZES,
+  BORDERS,
+  NAVIGATION_ITEMS,
+  SITE_TYPES,
+  PERMISSIONS,
+  USER_ROLES,
+  UPLOAD_LIMITS,
+  PAGINATION,
+  DATE_FORMATS,
+  CHART_COLORS,
+  MAP_CONFIG,
+  getPermissionDisplayName,
+  getRoleColor,
+  formatFileSize,
+  isValidFileType,
 };
-
-const calculatePasswordStrength = (password) => {
-  let score = 0;
-
-  // Length bonus
-  if (password.length >= 8) score += 25;
-  if (password.length >= 12) score += 10;
-
-  // Character variety bonus
-  if (/[a-z]/.test(password)) score += 15;
-  if (/[A-Z]/.test(password)) score += 15;
-  if (/\d/.test(password)) score += 15;
-  if (/[^a-zA-Z\d]/.test(password)) score += 20;
-
-  // Penalty for common patterns
-  if (/(.)\1{2,}/.test(password)) score -= 10; // Repeated characters
-  if (/123|abc|qwe/i.test(password)) score -= 15; // Sequential patterns
-
-  if (score >= 80) return { level: "قوي جداً", color: "success" };
-  if (score >= 60) return { level: "قوي", color: "success" };
-  if (score >= 40) return { level: "متوسط", color: "warning" };
-  if (score >= 20) return { level: "ضعيف", color: "error" };
-  return { level: "ضعيف جداً", color: "error" };
-};
-
-export default CONSTANTS;

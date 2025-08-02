@@ -18,27 +18,63 @@ const MainLayout = ({ children }) => {
 
   if (!user) return null;
 
-  const drawerWidth = isMobile ? 0 : APP_CONFIG.DRAWER_WIDTH;
-
   return (
-    <Box sx={{ display: "flex", direction: "rtl" }}>
+    <Box sx={{ display: "flex", direction: "rtl", height: "100vh" }}>
       <CssBaseline />
+
+      {/* شريط علوي */}
       <TopBar />
+
+      {/* شريط جانبي للشاشات الكبيرة فقط */}
       {!isMobile && <Sidebar />}
 
+      {/* المحتوى الرئيسي */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: isMobile ? 1 : 3,
-          width: `calc(100% - ${drawerWidth}px)`,
-          minHeight: "100vh",
+          width: isMobile
+            ? "100%"
+            : `calc(100% - ${APP_CONFIG.DRAWER_WIDTH}px)`,
+          height: "100vh",
+          overflow: "auto",
           backgroundColor: "background.default",
           direction: "ltr",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <Toolbar />
-        <Box sx={{ mt: isMobile ? 1 : 2 }}>{children}</Box>
+        {/* مساحة للشريط العلوي */}
+        <Toolbar
+          sx={{
+            minHeight: { xs: "56px", sm: "64px" },
+            flexShrink: 0,
+          }}
+        />
+
+        {/* محتوى الصفحة */}
+        <Box
+          sx={{
+            flex: 1,
+            overflow: "auto",
+            p: { xs: 1, sm: 2, md: 3 },
+            "&::-webkit-scrollbar": {
+              width: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "transparent",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "rgba(0, 255, 136, 0.2)",
+              borderRadius: 0,
+            },
+            "&::-webkit-scrollbar-thumb:hover": {
+              backgroundColor: "rgba(0, 255, 136, 0.3)",
+            },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );
