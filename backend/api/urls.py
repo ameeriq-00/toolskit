@@ -1,4 +1,4 @@
-# backend/api/urls.py
+# backend/api/urls.py - مُصحح ومتطابق مع Frontend
 
 from django.urls import path
 from .views import analysis_views, auth_views, user_management_views
@@ -77,12 +77,21 @@ urlpatterns = [
     path('analyze-excel-z/', analysis_views.analyze_excel_z, name='analyze_excel_z'),
     path('compare-sheets/', analysis_views.compare_excel_sheets, name='compare_sheets'),
     
-    # ===== Site Upload endpoints (existing) =====
+    # ===== Site Upload endpoints - CORRECTED PATHS =====
+    # ✅ مسارات الرفع المُصححة لتتطابق مع Frontend
     path('sites/upload/2g/', upload_2g_sites, name='upload_2g_sites'),
     path('sites/upload/3g/', upload_3g_sites, name='upload_3g_sites'),
     path('sites/upload/4g/', upload_4g_sites, name='upload_4g_sites'),
     path('sites/upload/z/', upload_z_format_sites, name='upload_z_sites'),
     path('sites/upload/statistics/', get_upload_statistics, name='upload_statistics'),
+    
+    # ===== LEGACY Upload endpoints - للتوافق مع الكود القديم =====
+    # ⚠️ هذه المسارات للتوافق مع الكود القديم - يمكن حذفها لاحقاً
+    path('upload-2g-sites/', upload_2g_sites, name='legacy_upload_2g_sites'),
+    path('upload-3g-sites/', upload_3g_sites, name='legacy_upload_3g_sites'),
+    path('upload-4g-sites/', upload_4g_sites, name='legacy_upload_4g_sites'),
+    path('upload-z-format-sites/', upload_z_format_sites, name='legacy_upload_z_sites'),
+    path('upload-statistics/', get_upload_statistics, name='legacy_upload_statistics'),
     
     # ===== Site Search endpoints - EXISTING SYSTEM =====
     path('sites/simplified-search/', simplified_site_search, name='simplified_site_search'),

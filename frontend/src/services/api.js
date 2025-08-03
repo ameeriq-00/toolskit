@@ -1,3 +1,4 @@
+// frontend/src/services/api.js - الملف الأصلي الكامل مع التصحيحات
 import axios from "axios";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -84,22 +85,22 @@ const apiService = {
     return response.data;
   },
 
+  async unlockMyAccount(unlockData) {
+    const response = await api.post("/api/auth/unlock-account/", unlockData);
+    return response.data;
+  },
+
   async refreshSession() {
-    const sessionKey = localStorage.getItem("sessionKey");
-    const response = await api.post("/api/auth/refresh-session/", {
-      session_key: sessionKey,
-    });
+    const response = await api.post("/api/auth/refresh-session/");
     return response.data;
   },
 
-  async reportSuspiciousActivity(activityData) {
-    const response = await api.post(
-      "/api/auth/report-suspicious/",
-      activityData
-    );
+  async reportSuspiciousActivity(reportData) {
+    const response = await api.post("/api/auth/report-suspicious/", reportData);
     return response.data;
   },
 
+  // ===== Validation Endpoints =====
   async checkUsernameAvailability(username) {
     const response = await api.post("/api/auth/check-username/", { username });
     return response.data;
@@ -112,20 +113,28 @@ const apiService = {
     return response.data;
   },
 
-  // ===== User Management (Admin) =====
+  // ===== Legacy Auth Support =====
+  async numberLookup(phoneNumber) {
+    const response = await api.post("/api/number-lookup/", {
+      phone_number: phoneNumber,
+    });
+    return response.data;
+  },
+
+  // ===== User Management =====
   async getUsers(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const response = await api.get(`/api/admin/users/?${queryString}`);
     return response.data;
   },
 
-  async getUserDetails(userId) {
-    const response = await api.get(`/api/admin/users/${userId}/`);
+  async createUser(userData) {
+    const response = await api.post("/api/admin/users/create/", userData);
     return response.data;
   },
 
-  async createUser(userData) {
-    const response = await api.post("/api/admin/users/create/", userData);
+  async getUserDetails(userId) {
+    const response = await api.get(`/api/admin/users/${userId}/`);
     return response.data;
   },
 
@@ -142,17 +151,13 @@ const apiService = {
     return response.data;
   },
 
-  async activateUser(userId, expiresAt = null) {
-    const response = await api.post(`/api/admin/users/${userId}/activate/`, {
-      account_expires_at: expiresAt,
-    });
+  async activateUser(userId) {
+    const response = await api.post(`/api/admin/users/${userId}/activate/`);
     return response.data;
   },
 
-  async deactivateUser(userId, reason = "") {
-    const response = await api.post(`/api/admin/users/${userId}/deactivate/`, {
-      reason,
-    });
+  async deactivateUser(userId) {
+    const response = await api.post(`/api/admin/users/${userId}/deactivate/`);
     return response.data;
   },
 
@@ -219,11 +224,13 @@ const apiService = {
     return response.data;
   },
 
-  // ===== Original Excel Analysis =====
+  // ===== Excel Analysis =====
   async analyzeExcel(file) {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await api.post("/api/analyze-excel/", formData);
+    const response = await api.post("/api/analyze-excel/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -231,7 +238,9 @@ const apiService = {
     const formData = new FormData();
     formData.append("main_file", mainFile);
     formData.append("imei_file", imeiFile);
-    const response = await api.post("/api/analyze-excel-z/", formData);
+    const response = await api.post("/api/analyze-excel-z/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -243,7 +252,9 @@ const apiService = {
       formData.append(`file_${index}_name`, fileData.name);
       formData.append(`file_${index}_format`, fileData.format);
     });
-    const response = await api.post("/api/compare-sheets/", formData);
+    const response = await api.post("/api/compare-sheets/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data;
   },
 
@@ -252,30 +263,62 @@ const apiService = {
     const formData = new FormData();
     formData.append("file", file);
 
-    // تصحيح المسارات لتتطابق مع Backend
-    const endpoints = {
+    // ✅ استخدام المسارات الجديدة أولاً، ثم القديمة كـ fallback
+    const newEndpoints = {
+      "2g": "/api/sites/upload/2g/",
+      "3g": "/api/sites/upload/3g/",
+      "4g": "/api/sites/upload/4g/",
+      z: "/api/sites/upload/z/",
+    };
+
+    const oldEndpoints = {
       "2g": "/api/upload-2g-sites/",
       "3g": "/api/upload-3g-sites/",
       "4g": "/api/upload-4g-sites/",
       z: "/api/upload-z-format-sites/",
     };
 
-    const endpoint = endpoints[type];
-    if (!endpoint) {
+    const newEndpoint = newEndpoints[type];
+    const oldEndpoint = oldEndpoints[type];
+
+    if (!newEndpoint && !oldEndpoint) {
       throw new Error(`نوع الأبراج غير مدعوم: ${type}`);
     }
 
-    const response = await api.post(endpoint, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
+    console.log(`🚀 Uploading ${type} sites to: ${newEndpoint}`);
+
+    try {
+      // جرب المسار الجديد أولاً
+      const response = await api.post(newEndpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404 && oldEndpoint) {
+        // إذا فشل المسار الجديد، جرب القديم
+        console.log(`⚠️ Falling back to old endpoint: ${oldEndpoint}`);
+        const response = await api.post(oldEndpoint, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return response.data;
+      }
+      throw error;
+    }
   },
 
   async getUploadStatistics() {
-    const response = await api.get("/api/upload-statistics/");
-    return response.data;
+    // ✅ جرب المسار الجديد أولاً، ثم القديم
+    try {
+      const response = await api.get("/api/sites/upload/statistics/");
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        console.log("⚠️ Falling back to old statistics endpoint");
+        const response = await api.get("/api/upload-statistics/");
+        return response.data;
+      }
+      throw error;
+    }
   },
 
   // دوال منفصلة لكل نوع (للاستخدام المباشر)
@@ -341,16 +384,15 @@ const apiService = {
     return response.data;
   },
 
-  // ===== Nearby Sites - النسخة المُحدثة =====
+  // ===== Nearby Sites =====
   async findNearbySites(searchData) {
     const response = await api.post("/api/sites/nearby/", searchData);
     return response.data;
   },
 
   async findNearbyAsiaSites(siteData, limit = 2) {
-    // تعديل هيكل البيانات ليتطابق مع Backend
     const requestData = {
-      site_data: siteData, // ✅ تغليف البيانات بـ site_data
+      site_data: siteData,
       limit: limit,
     };
     console.log("🔍 Frontend API - البيانات المرسلة لـ آسيا:", requestData);
@@ -360,9 +402,8 @@ const apiService = {
   },
 
   async findNearbyZainSites(siteData, limit = 2) {
-    // تعديل هيكل البيانات ليتطابق مع Backend
     const requestData = {
-      site_data: siteData, // ✅ تغليف البيانات بـ site_data
+      site_data: siteData,
       limit: limit,
     };
     console.log("🔍 Frontend API - البيانات المرسلة لـ زين:", requestData);
@@ -372,7 +413,6 @@ const apiService = {
   },
 
   async getNearbySitesInRadius(lat, lon, radius, technology = "all") {
-    // تحديث المعاملات لتتطابق مع Backend
     const params = new URLSearchParams({
       lat: lat.toString(),
       lon: lon.toString(),
@@ -381,6 +421,12 @@ const apiService = {
     });
 
     const response = await api.get(`/api/sites/nearby/radius/?${params}`);
+    return response.data;
+  },
+
+  // ===== Test Endpoints =====
+  async testNearbySearch(testData) {
+    const response = await api.post("/api/sites/nearby/test/", testData);
     return response.data;
   },
 
@@ -397,44 +443,287 @@ const apiService = {
   },
 
   isAuthenticated() {
-    return !!localStorage.getItem("token");
+    return !!(
+      localStorage.getItem("token") && localStorage.getItem("userInfo")
+    );
   },
 
-  getSessionKey() {
-    return localStorage.getItem("sessionKey");
-  },
-
-  // ===== Real-time Updates =====
-  async keepSessionAlive() {
-    try {
-      await this.refreshSession();
-      return true;
-    } catch (error) {
-      console.warn("Failed to refresh session:", error);
-      return false;
-    }
+  clearAuthData() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("sessionKey");
+    localStorage.removeItem("userInfo");
   },
 
   // ===== Error Handling =====
   formatError(error) {
-    if (error.response?.data?.error) {
-      return error.response.data.error;
+    if (error.response) {
+      // الخادم أرجع استجابة مع كود خطأ
+      const status = error.response.status;
+      const data = error.response.data;
+
+      if (status === 400) {
+        return data.error || data.message || "بيانات غير صحيحة";
+      } else if (status === 401) {
+        return "غير مخول للوصول - يرجى تسجيل الدخول مرة أخرى";
+      } else if (status === 403) {
+        return "ليس لديك صلاحية للوصول لهذه الوظيفة";
+      } else if (status === 404) {
+        return "المورد المطلوب غير موجود";
+      } else if (status === 500) {
+        return "خطأ في الخادم - يرجى المحاولة لاحقاً";
+      } else {
+        return data.error || data.message || `خطأ ${status}`;
+      }
+    } else if (error.request) {
+      // الطلب تم إرساله لكن لم يتم استلام رد
+      return "لا يمكن الاتصال بالخادم - تحقق من الاتصال بالإنترنت";
+    } else {
+      // خطأ في إعداد الطلب
+      return error.message || "حدث خطأ غير متوقع";
     }
-    if (error.response?.data?.message) {
-      return error.response.data.message;
+  },
+
+  // ===== File Upload Helpers =====
+  async uploadFileWithProgress(endpoint, formData, onProgress) {
+    return api.post(endpoint, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          onProgress(percentCompleted);
+        }
+      },
+    });
+  },
+
+  // ===== Network Status =====
+  async checkServerHealth() {
+    try {
+      const response = await api.get("/api/health/", { timeout: 5000 });
+      return { status: "healthy", data: response.data };
+    } catch (error) {
+      return { status: "unhealthy", error: this.formatError(error) };
     }
-    if (error.message) {
-      return error.message;
+  },
+
+  // ===== Cache Management =====
+  clearCache() {
+    // مسح التخزين المؤقت للبيانات المتكررة
+    const cacheKeys = Object.keys(localStorage).filter((key) =>
+      key.startsWith("cache_")
+    );
+    cacheKeys.forEach((key) => localStorage.removeItem(key));
+  },
+
+  setCacheItem(key, data, expirationMinutes = 60) {
+    const item = {
+      data: data,
+      timestamp: Date.now(),
+      expiration: expirationMinutes * 60 * 1000,
+    };
+    localStorage.setItem(`cache_${key}`, JSON.stringify(item));
+  },
+
+  getCacheItem(key) {
+    try {
+      const itemStr = localStorage.getItem(`cache_${key}`);
+      if (!itemStr) return null;
+
+      const item = JSON.parse(itemStr);
+      const now = Date.now();
+
+      if (now - item.timestamp > item.expiration) {
+        localStorage.removeItem(`cache_${key}`);
+        return null;
+      }
+
+      return item.data;
+    } catch (error) {
+      localStorage.removeItem(`cache_${key}`);
+      return null;
     }
-    return "حدث خطأ غير متوقع";
+  },
+
+  // ===== Development Helpers =====
+  enableDebugMode() {
+    localStorage.setItem("api_debug", "true");
+    console.log("🔧 API Debug Mode Enabled");
+  },
+
+  disableDebugMode() {
+    localStorage.removeItem("api_debug");
+    console.log("🔧 API Debug Mode Disabled");
+  },
+
+  isDebugMode() {
+    return localStorage.getItem("api_debug") === "true";
+  },
+
+  logRequest(config) {
+    if (this.isDebugMode()) {
+      console.log("🚀 API Request:", {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        data: config.data,
+        headers: config.headers,
+      });
+    }
+  },
+
+  logResponse(response) {
+    if (this.isDebugMode()) {
+      console.log("✅ API Response:", {
+        status: response.status,
+        url: response.config.url,
+        data: response.data,
+      });
+    }
+  },
+
+  logError(error) {
+    if (this.isDebugMode()) {
+      console.error("❌ API Error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+      });
+    }
+  },
+
+  // ===== Advanced Features =====
+  async batchRequest(requests) {
+    try {
+      const promises = requests.map((request) =>
+        api.request(request).catch((error) => ({ error, request }))
+      );
+
+      const results = await Promise.all(promises);
+
+      return {
+        success: results.filter((result) => !result.error),
+        failed: results.filter((result) => result.error),
+      };
+    } catch (error) {
+      throw new Error(`Batch request failed: ${error.message}`);
+    }
+  },
+
+  async retryRequest(requestConfig, maxRetries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await api.request(requestConfig);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Wait before retrying
+        await new Promise((resolve) => setTimeout(resolve, delay * attempt));
+      }
+    }
+  },
+
+  // ===== Specialized Search Functions =====
+  async searchByCoordinates(lat, lon, radius = 1000) {
+    const response = await api.post("/api/sites/search-coordinates/", {
+      latitude: lat,
+      longitude: lon,
+      radius: radius,
+    });
+    return response.data;
+  },
+
+  async searchByCellId(cellId, technology = "all") {
+    const response = await api.post("/api/sites/search-cell/", {
+      cell_id: cellId,
+      technology: technology,
+    });
+    return response.data;
+  },
+
+  async searchBySiteName(siteName, fuzzy = true) {
+    const response = await api.post("/api/sites/search-name/", {
+      site_name: siteName,
+      fuzzy_match: fuzzy,
+    });
+    return response.data;
+  },
+
+  // ===== Data Export Functions =====
+  async exportSearchResults(searchParams, format = "xlsx") {
+    const response = await api.post(
+      "/api/sites/export/",
+      {
+        ...searchParams,
+        export_format: format,
+      },
+      {
+        responseType: "blob",
+      }
+    );
+    return response;
+  },
+
+  async exportStatistics(dateRange, format = "pdf") {
+    const response = await api.post(
+      "/api/statistics/export/",
+      {
+        start_date: dateRange.start,
+        end_date: dateRange.end,
+        format: format,
+      },
+      {
+        responseType: "blob",
+      }
+    );
+    return response;
+  },
+
+  // ===== Backup & Restore =====
+  async backupData(dataTypes = ["sites", "users", "activities"]) {
+    const response = await api.post("/api/admin/backup/", {
+      data_types: dataTypes,
+    });
+    return response.data;
+  },
+
+  async restoreData(backupFile) {
+    const formData = new FormData();
+    formData.append("backup_file", backupFile);
+
+    const response = await api.post("/api/admin/restore/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  // ===== Advanced Analytics =====
+  async getAdvancedAnalytics(params = {}) {
+    const response = await api.post("/api/analytics/advanced/", params);
+    return response.data;
+  },
+
+  async getTrendAnalysis(metric, timeRange) {
+    const response = await api.post("/api/analytics/trends/", {
+      metric: metric,
+      time_range: timeRange,
+    });
+    return response.data;
+  },
+
+  async getComparisonReport(data1, data2, comparisonType = "overlap") {
+    const response = await api.post("/api/analytics/compare/", {
+      dataset1: data1,
+      dataset2: data2,
+      comparison_type: comparisonType,
+    });
+    return response.data;
   },
 };
-
-// Auto-refresh session every 30 minutes
-if (apiService.isAuthenticated()) {
-  setInterval(() => {
-    apiService.keepSessionAlive();
-  }, 30 * 60 * 1000); // 30 minutes
-}
 
 export default apiService;
