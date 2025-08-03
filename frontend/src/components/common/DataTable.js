@@ -382,6 +382,7 @@ const DataTable = ({ data, title = "البيانات" }) => {
         }
         sx={{ borderTop: "1px solid", borderColor: "divider" }}
       />
+
     </Paper>
   );
 };

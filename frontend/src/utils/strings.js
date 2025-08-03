@@ -9,7 +9,7 @@ const strings = {
   noDataAvailable: "لا توجد بيانات متاحة",
 
   // Excel Analysis Common
-  filteredCalls: "المكالمات المفلترة",
+  filteredCalls: "الجسور",
   aggregatedCallerNumbers: "أرقام المتصلين المجمعة",
   imeiUsage: "استخدام IMEI",
   mostVisitedSites: "أكثر المواقع زيارة",

@@ -115,7 +115,7 @@ const ExcelAnalyzerZ = () => {
   };
 
   const tabs = [
-    { label: "المكالمات المفلترة", component: "filtered_calls" },
+    { label: " الجسور", component: "filtered_calls" },
     { label: "استخدام IMEI", component: "imei_usage" },
     { label: "أكثر المواقع زيارة", component: "most_visited_sites" },
     { label: "تحليل الوقت", component: "time_analysis" },
@@ -161,7 +161,7 @@ const ExcelAnalyzerZ = () => {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           <TimelineIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          محلل ملفات Excel Z
+             تحليل زين
         </Typography>
         <Typography variant="body1" color="text.secondary">
           تحليل متخصص للتنسيق Z مع ملفات IMEI منفصلة

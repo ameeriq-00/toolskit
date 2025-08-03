@@ -204,7 +204,7 @@ const SheetsComparison = () => {
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           <CompareIcon sx={{ mr: 1, verticalAlign: "middle" }} />
-          مقارنة الشيتات
+           I2 مقارنة
         </Typography>
         <Typography variant="body1" color="textSecondary">
           رفع عدة شيتات لتحليل التطابق والعلاقات المشتركة بين الأرقام

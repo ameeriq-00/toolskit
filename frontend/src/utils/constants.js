@@ -180,21 +180,21 @@ export const NAVIGATION_ITEMS = [
     children: [
       {
         id: "excel-analyzer",
-        title: "محلل Excel",
+        title: "تحليل اسيا",
         icon: "Upload",
         path: "/excel-analyzer",
         permissions: ["analyze_excel"],
       },
       {
         id: "excel-analyzer-z",
-        title: "محلل Excel Z",
+        title: " تحليل زين",
         icon: "Timeline",
         path: "/excel-analyzer-z",
         permissions: ["analyze_excel"],
       },
       {
         id: "sheets-comparison",
-        title: "مقارنة الشيتات",
+        title: " I2 مقارنة",
         icon: "Compare",
         path: "/sheets-comparison",
         permissions: ["compare_sheets"],

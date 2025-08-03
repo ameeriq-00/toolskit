@@ -57,19 +57,19 @@ const menuItems = [
     children: [
       {
         id: "excel-analyzer",
-        title: "محلل Excel",
+        title: "تحليل اسيا",
         icon: "Upload",
         path: "/excel-analyzer",
       },
       {
         id: "excel-analyzer-z",
-        title: "محلل Excel Z",
+        title: "تحليل زين",
         icon: "Timeline",
         path: "/excel-analyzer-z",
       },
       {
         id: "sheets-comparison",
-        title: "مقارنة الشيتات",
+        title: " مقارنة I2",
         icon: "Compare",
         path: "/sheets-comparison",
         badge: "NEW",
