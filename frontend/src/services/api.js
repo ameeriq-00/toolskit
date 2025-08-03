@@ -247,17 +247,52 @@ const apiService = {
     return response.data;
   },
 
-  // ===== Site Management =====
+  // ===== Site Management - مُصحح ومُحدث =====
   async uploadSites(type, file) {
     const formData = new FormData();
     formData.append("file", file);
-    const response = await api.post(`/api/sites/upload/${type}/`, formData);
+
+    // تصحيح المسارات لتتطابق مع Backend
+    const endpoints = {
+      "2g": "/api/upload-2g-sites/",
+      "3g": "/api/upload-3g-sites/",
+      "4g": "/api/upload-4g-sites/",
+      z: "/api/upload-z-format-sites/",
+    };
+
+    const endpoint = endpoints[type];
+    if (!endpoint) {
+      throw new Error(`نوع الأبراج غير مدعوم: ${type}`);
+    }
+
+    const response = await api.post(endpoint, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   },
 
   async getUploadStatistics() {
-    const response = await api.get("/api/sites/upload/statistics/");
+    const response = await api.get("/api/upload-statistics/");
     return response.data;
+  },
+
+  // دوال منفصلة لكل نوع (للاستخدام المباشر)
+  async upload2GSites(file) {
+    return this.uploadSites("2g", file);
+  },
+
+  async upload3GSites(file) {
+    return this.uploadSites("3g", file);
+  },
+
+  async upload4GSites(file) {
+    return this.uploadSites("4g", file);
+  },
+
+  async uploadZFormatSites(file) {
+    return this.uploadSites("z", file);
   },
 
   // ===== Site Search =====

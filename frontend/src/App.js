@@ -25,6 +25,7 @@ import TowerSearch from "./pages/Towers/TowerSearch";
 import UserManagement from "./pages/Admin/UserManagement";
 import SystemActivities from "./pages/Admin/SystemActivities";
 import SecurityAlerts from "./pages/Admin/SecurityAlerts";
+import SiteManagement from "./pages/Towers/SiteManagement";
 
 // Component to handle routing logic
 const AppRoutes = () => {
@@ -108,7 +109,7 @@ const AppRoutes = () => {
             requireAny
           >
             <MainLayout>
-              <div>Site Management Page - To be implemented</div>
+              <SiteManagement />
             </MainLayout>
           </ProtectedRoute>
         }

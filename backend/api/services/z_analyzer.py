@@ -165,65 +165,147 @@ class ZFormatAnalyzer:
     
 
     def aggregate_imei_usage_new(self, df, sheet_owner_number):
-        """Aggregate IMEI usage for Z format"""
+        """
+        استخراج وتجميع استخدام IMEI للتنسيق Z - محدث ومُصلح
+        """
         if not sheet_owner_number:
             print("Warning: Sheet owner number is None. Cannot aggregate IMEI usage.")
             return []
-
+    
         print(f"Aggregating IMEI usage for sheet owner: {sheet_owner_number}")
         
-        # Convert owner number and DataFrame numbers to string
+        # تحويل الأرقام إلى string للمقارنة الصحيحة
         df['Calling Number'] = df['Calling Number'].astype(str)
         df['Called Number'] = df['Called Number'].astype(str)
         sheet_owner_number = str(sheet_owner_number)
         
-        owner_imeis = df[
-            ((df['Calling Number'] == sheet_owner_number) & (df['Calling IMEI'].notna())) |
-            ((df['Called Number'] == sheet_owner_number) & (df['Called IMEI'].notna()))
-        ]['Calling IMEI'].fillna(df['Called IMEI'])
-
-        if owner_imeis.empty:
-            print("Warning: No matching IMEI data found for sheet owner")
-            return []
-
-        imei_usage = owner_imeis.value_counts().reset_index()
-        imei_usage.columns = ['IMEI', 'Usage_Count']
+        # تنظيف وتحويل التاريخ
+        try:
+            df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y %I:%M:%S %p', errors='coerce')
+            print("Date conversion successful")
+        except Exception as e:
+            print(f"Date conversion error: {e}")
+            # محاولة تنسيق بديل
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
         
-        # Calculate first and last use dates
-        owner_calls = df[
-            (df['Calling Number'] == sheet_owner_number) |
-            (df['Called Number'] == sheet_owner_number)
+        def clean_imei(imei):
+            """تنظيف قيم IMEI من القيم غير الصحيحة"""
+            if pd.isna(imei) or imei == '' or str(imei).strip() == '':
+                return None
+            
+            # تحويل إلى string وإزالة .0
+            imei_str = str(imei).replace('.0', '').strip()
+            
+            # التحقق من أن IMEI مكون من 15 رقم بالضبط
+            if len(imei_str) == 15 and imei_str.isdigit():
+                return imei_str
+            
+            return None
+    
+        # تنظيف أعمدة IMEI
+        df['Calling IMEI'] = df['Calling IMEI'].apply(clean_imei)
+        df['Called IMEI'] = df['Called IMEI'].apply(clean_imei)
+        
+        # استخراج IMEIs بالطريقة الصحيحة
+        owner_imeis_data = []
+        
+        print("Extracting IMEIs...")
+        
+        # الحالة 1: المالك هو المتصل (نأخذ Calling IMEI)
+        calling_records = df[
+            (df['Calling Number'] == sheet_owner_number) & 
+            (df['Calling IMEI'].notna())
         ]
         
-        imei_dates = pd.DataFrame()
-        for idx, row in imei_usage.iterrows():
+        for _, row in calling_records.iterrows():
+            owner_imeis_data.append({
+                'IMEI': row['Calling IMEI'],
+                'Date': row['Date']
+            })
+        
+        # الحالة 2: المالك هو المستقبل (نأخذ Called IMEI)
+        called_records = df[
+            (df['Called Number'] == sheet_owner_number) & 
+            (df['Called IMEI'].notna())
+        ]
+        
+        for _, row in called_records.iterrows():
+            owner_imeis_data.append({
+                'IMEI': row['Called IMEI'],
+                'Date': row['Date']
+            })
+        
+        if not owner_imeis_data:
+            print("Warning: No valid IMEI data found for sheet owner")
+            return []
+        
+        print(f"Found {len(owner_imeis_data)} IMEI records")
+        
+        # تحويل إلى DataFrame للمعالجة
+        imei_df = pd.DataFrame(owner_imeis_data)
+        
+        # عد استخدامات كل IMEI
+        imei_usage = imei_df['IMEI'].value_counts().reset_index()
+        imei_usage.columns = ['IMEI', 'Usage_Count']
+        
+        print(f"Unique IMEIs found: {imei_usage['IMEI'].tolist()}")
+        print(f"Usage counts: {imei_usage['Usage_Count'].tolist()}")
+        
+        # حساب تواريخ أول وآخر استخدام لكل IMEI
+        imei_dates = []
+        for _, row in imei_usage.iterrows():
             imei = row['IMEI']
-            imei_calls = owner_calls[
-                (owner_calls['Calling IMEI'] == imei) |
-                (owner_calls['Called IMEI'] == imei)
-            ]
-            if not imei_calls.empty:
-                first_use = imei_calls['Date'].min()
-                last_use = imei_calls['Date'].max()
-                imei_dates = pd.concat([imei_dates, pd.DataFrame({
-                    'IMEI': [imei],
-                    'First_Use': [first_use],
-                    'Last_Use': [last_use]
-                })])
-
-        # Merge usage counts with dates
-        imei_usage = pd.merge(imei_usage, imei_dates, on='IMEI')
+            
+            # البحث عن كل السجلات لهذا IMEI
+            imei_records = imei_df[imei_df['IMEI'] == imei]
+            
+            if not imei_records.empty:
+                # إزالة التواريخ غير الصحيحة
+                valid_dates = imei_records['Date'].dropna()
+                
+                if not valid_dates.empty:
+                    first_use = valid_dates.min()
+                    last_use = valid_dates.max()
+                    
+                    imei_dates.append({
+                        'IMEI': imei,
+                        'First_Use': first_use,
+                        'Last_Use': last_use
+                    })
+                else:
+                    imei_dates.append({
+                        'IMEI': imei,
+                        'First_Use': pd.NaT,
+                        'Last_Use': pd.NaT
+                    })
         
-        # Sort by Last_Use date
-        imei_usage = imei_usage.sort_values('Last_Use')
+        # دمج البيانات
+        if imei_dates:
+            imei_dates_df = pd.DataFrame(imei_dates)
+            imei_usage = pd.merge(imei_usage, imei_dates_df, on='IMEI', how='left')
+        else:
+            imei_usage['First_Use'] = pd.NaT
+            imei_usage['Last_Use'] = pd.NaT
         
-        imei_usage['Usage_Period'] = imei_usage.apply(
-            lambda row: f"{row['First_Use'].strftime('%Y-%m-%d')} to {row['Last_Use'].strftime('%Y-%m-%d')}" 
-            if not pd.isna(row['First_Use']) else "Unknown",
-            axis=1
-        )
-
-        return imei_usage[['IMEI', 'Usage_Count', 'Usage_Period']].to_dict('records')
+        # تنسيق فترة الاستخدام
+        def format_usage_period(row):
+            if pd.notnull(row['First_Use']) and pd.notnull(row['Last_Use']):
+                first_str = row['First_Use'].strftime('%Y-%m-%d')
+                last_str = row['Last_Use'].strftime('%Y-%m-%d')
+                return f"{first_str} to {last_str}"
+            return "Unknown"
+        
+        imei_usage['Usage_Period'] = imei_usage.apply(format_usage_period, axis=1)
+        
+        # ترتيب حسب آخر استخدام (الأحدث أولاً)
+        imei_usage = imei_usage.sort_values('Last_Use', ascending=False, na_position='last')
+        
+        # إعداد النتيجة النهائية
+        result = imei_usage[['IMEI', 'Usage_Count', 'Usage_Period']].to_dict('records')
+        
+        print(f"Final result: {result}")
+        
+        return result
 
     def summarize_most_visited_sites_new(self, df, sheet_owner_number):
         """Summarize most visited sites for Z format with site matching"""
