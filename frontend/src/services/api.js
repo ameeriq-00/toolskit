@@ -724,6 +724,303 @@ const apiService = {
     });
     return response.data;
   },
+
+  // ===== User Analysis Results - جديد =====
+
+  /**
+   * جلب تاريخ تحليلات المستخدم
+   */
+  async getUserAnalysisHistory(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await api.get(`/api/my-analysis/?${queryString}`);
+    return response.data;
+  },
+
+  /**
+   * جلب تفاصيل تحليل محدد
+   */
+  async getAnalysisById(analysisId) {
+    const response = await api.get(`/api/my-analysis/${analysisId}/`);
+    return response.data;
+  },
+
+  /**
+   * حذف تحليل محدد
+   */
+  async deleteAnalysis(analysisId) {
+    const response = await api.delete(`/api/my-analysis/${analysisId}/delete/`);
+    return response.data;
+  },
+
+  // ===== تحديث Excel Analysis Methods لحفظ النتائج =====
+
+  /**
+   * تحليل أسيا مع حفظ النتائج
+   */
+  async analyzeExcel(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post("/api/analyze-excel/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  /**
+   * تحليل زين مع حفظ النتائج
+   */
+  async analyzeExcelZ(mainFile, imeiFile) {
+    const formData = new FormData();
+    formData.append("main_file", mainFile);
+    formData.append("imei_file", imeiFile);
+    const response = await api.post("/api/analyze-excel-z/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  /**
+   * مقارنة الملفات مع حفظ النتائج
+   */
+  async compareSheets(filesData) {
+    const formData = new FormData();
+    filesData.forEach((fileData, index) => {
+      formData.append(`file_${index}`, fileData.file);
+      formData.append(`file_${index}_name`, fileData.name);
+      formData.append(`file_${index}_format`, fileData.format);
+    });
+    const response = await api.post("/api/compare-sheets/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  // ===== Utility Functions للتحليلات =====
+
+  /**
+   * تحقق من وجود تحليل مشابه (للـ cache)
+   */
+  async checkExistingAnalysis(fileHash, analysisType) {
+    const response = await api.post("/api/check-existing-analysis/", {
+      file_hash: fileHash,
+      analysis_type: analysisType,
+    });
+    return response.data;
+  },
+
+  /**
+   * إنشاء هاش للملف
+   */
+  async createFileHash(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target.result;
+        const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        resolve(hashHex);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  },
+
+  /**
+   * احصائيات التحليلات المحفوظة
+   */
+  async getAnalysisStatistics() {
+    const response = await api.get("/api/my-analysis/statistics/");
+    return response.data;
+  },
+
+  /**
+   * تصدير تحليل كـ PDF أو Excel
+   */
+  async exportAnalysis(analysisId, format = "pdf") {
+    const response = await api.get(`/api/my-analysis/${analysisId}/export/`, {
+      params: { format },
+      responseType: "blob",
+    });
+    return response;
+  },
+
+  /**
+   * مشاركة تحليل مع مستخدم آخر
+   */
+  async shareAnalysis(analysisId, targetUserId, permissions = ["view"]) {
+    const response = await api.post(`/api/my-analysis/${analysisId}/share/`, {
+      target_user_id: targetUserId,
+      permissions: permissions,
+    });
+    return response.data;
+  },
+
+  /**
+   * إنشاء قالب من تحليل موجود
+   */
+  async createAnalysisTemplate(analysisId, templateName, description = "") {
+    const response = await api.post(
+      `/api/my-analysis/${analysisId}/create-template/`,
+      {
+        name: templateName,
+        description: description,
+      }
+    );
+    return response.data;
+  },
+
+  // ===== Batch Operations =====
+
+  /**
+   * حذف عدة تحليلات مرة واحدة
+   */
+  async deleteMultipleAnalyses(analysisIds) {
+    const response = await api.post("/api/my-analysis/bulk-delete/", {
+      analysis_ids: analysisIds,
+    });
+    return response.data;
+  },
+
+  /**
+   * تصدير عدة تحليلات في ملف واحد
+   */
+  async exportMultipleAnalyses(analysisIds, format = "zip") {
+    const response = await api.post(
+      "/api/my-analysis/bulk-export/",
+      {
+        analysis_ids: analysisIds,
+        format: format,
+      },
+      {
+        responseType: "blob",
+      }
+    );
+    return response;
+  },
+
+  // ===== Advanced Search في التحليلات المحفوظة =====
+
+  /**
+   * بحث متقدم في التحليلات
+   */
+  async searchAnalyses(searchParams) {
+    const response = await api.post("/api/my-analysis/search/", searchParams);
+    return response.data;
+  },
+
+  /**
+   * الحصول على تحليلات مشابهة
+   */
+  async getSimilarAnalyses(analysisId, limit = 5) {
+    const response = await api.get(`/api/my-analysis/${analysisId}/similar/`, {
+      params: { limit },
+    });
+    return response.data;
+  },
+
+  // ===== Analysis Management =====
+
+  /**
+   * تجديد انتهاء صلاحية التحليل
+   */
+  async extendAnalysisExpiry(analysisId, additionalDays = 30) {
+    const response = await api.post(`/api/my-analysis/${analysisId}/extend/`, {
+      additional_days: additionalDays,
+    });
+    return response.data;
+  },
+
+  /**
+   * إضافة ملاحظات للتحليل
+   */
+  async addAnalysisNotes(analysisId, notes) {
+    const response = await api.post(`/api/my-analysis/${analysisId}/notes/`, {
+      notes: notes,
+    });
+    return response.data;
+  },
+
+  /**
+   * تقييم التحليل (rating)
+   */
+  async rateAnalysis(analysisId, rating, feedback = "") {
+    const response = await api.post(`/api/my-analysis/${analysisId}/rate/`, {
+      rating: rating,
+      feedback: feedback,
+    });
+    return response.data;
+  },
+
+  // ===== Error Handling للتحليلات =====
+
+  /**
+   * إعادة تشغيل تحليل فاشل
+   */
+  async retryFailedAnalysis(analysisId) {
+    const response = await api.post(`/api/my-analysis/${analysisId}/retry/`);
+    return response.data;
+  },
+
+  /**
+   * الحصول على تفاصيل خطأ التحليل
+   */
+  async getAnalysisErrorDetails(analysisId) {
+    const response = await api.get(
+      `/api/my-analysis/${analysisId}/error-details/`
+    );
+    return response.data;
+  },
+
+  // ===== Helper Methods =====
+
+  /**
+   * تنسيق حجم الملف
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  },
+
+  /**
+   * تنسيق تاريخ انتهاء الصلاحية
+   */
+  formatExpiryDate(expiryDate) {
+    const now = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) return "منتهي الصلاحية";
+    if (diffDays === 1) return "ينتهي غداً";
+    if (diffDays <= 7) return `ينتهي خلال ${diffDays} أيام`;
+    if (diffDays <= 30) return `ينتهي خلال ${Math.ceil(diffDays / 7)} أسابيع`;
+    return `ينتهي خلال ${Math.ceil(diffDays / 30)} شهور`;
+  },
+
+  /**
+   * التحقق من صلاحية التحليل
+   */
+  isAnalysisExpired(expiryDate) {
+    return new Date() > new Date(expiryDate);
+  },
+
+  /**
+   * الحصول على نوع التحليل باللغة العربية
+   */
+  getAnalysisTypeLabel(analysisType) {
+    const labels = {
+      standard: "تحليل أسيا",
+      z_format: "تحليل زين",
+      comparison: "مقارنة الملفات",
+    };
+    return labels[analysisType] || analysisType;
+  },
 };
+
 
 export default apiService;

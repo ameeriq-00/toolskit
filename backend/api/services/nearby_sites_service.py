@@ -39,7 +39,7 @@ class NearbySitesService:
         unique_sites = []
         used_coordinates = []
         
-        print(f"🔍 فلترة {len(sites_list)} برج للحصول على {limit} برج بإحداثيات مختلفة")
+        print(f" فلترة {len(sites_list)} برج للحصول على {limit} برج بإحداثيات مختلفة")
         
         for site in sites_list:
             try:
@@ -53,7 +53,7 @@ class NearbySitesService:
                         site_lat, site_lon, 
                         used_coord['lat'], used_coord['lon']
                     ):
-                        print(f"❌ تجاهل البرج {site['site_name']} - إحداثيات متشابهة مع برج سابق")
+                        print(f" تجاهل البرج {site['site_name']} - إحداثيات متشابهة مع برج سابق")
                         is_duplicate = True
                         break
                 
@@ -64,17 +64,17 @@ class NearbySitesService:
                         'lon': site_lon,
                         'site_name': site['site_name']
                     })
-                    print(f"✅ إضافة البرج {site['site_name']} - إحداثيات فريدة ({site_lat:.4f}, {site_lon:.4f})")
+                    print(f" إضافة البرج {site['site_name']} - إحداثيات فريدة ({site_lat:.4f}, {site_lon:.4f})")
                     
                     # التوقف عند الوصول للعدد المطلوب
                     if len(unique_sites) >= limit:
                         break
                         
             except (ValueError, KeyError, TypeError) as e:
-                print(f"⚠️ خطأ في معالجة إحداثيات البرج {site.get('site_name', 'غير معروف')}: {e}")
+                print(f" خطأ في معالجة إحداثيات البرج {site.get('site_name', 'غير معروف')}: {e}")
                 continue
         
-        print(f"📊 النتيجة النهائية: {len(unique_sites)} برج بإحداثيات فريدة من أصل {len(sites_list)}")
+        print(f" النتيجة النهائية: {len(unique_sites)} برج بإحداثيات فريدة من أصل {len(sites_list)}")
         for i, site in enumerate(unique_sites):
             coords = site['coordinates']
             print(f"  {i+1}. {site['site_name']} ({coords['latitude']:.4f}, {coords['longitude']:.4f}) - {site['distance']:.2f} كم")
@@ -92,8 +92,8 @@ class NearbySitesService:
             current_lon = float(site_data['coordinates']['longitude'])
             current_site_id = str(site_data['site_id'])
             
-            print(f"🔍 البحث عن أبراج آسيا القريبة للبرج: {current_site_id}")
-            print(f"📍 الإحداثيات: {current_lat}, {current_lon}")
+            print(f" البحث عن أبراج آسيا القريبة للبرج: {current_site_id}")
+            print(f" الإحداثيات: {current_lat}, {current_lon}")
             
             all_nearby_sites = []
             
@@ -195,24 +195,24 @@ class NearbySitesService:
             # ترتيب حسب المسافة
             all_nearby_sites.sort(key=lambda x: x['distance'])
             
-            print(f"📊 تم العثور على {len(all_nearby_sites)} برج آسيا إجمالاً قبل الفلترة")
+            print(f" تم العثور على {len(all_nearby_sites)} برج آسيا إجمالاً قبل الفلترة")
             
             # التأكد من وجود مواقع
             if not all_nearby_sites:
-                print("❌ لم يتم العثور على أي أبراج آسيا قريبة")
+                print(" لم يتم العثور على أي أبراج آسيا قريبة")
                 return []
             
             # فلترة الإحداثيات المتشابهة والحصول على أقرب برجين بإحداثيات مختلفة
             unique_sites = NearbySitesService.filter_unique_coordinates(all_nearby_sites, limit)
             
-            print(f"✅ النتيجة النهائية: {len(unique_sites)} برج آسيا بإحداثيات فريدة:")
+            print(f" النتيجة النهائية: {len(unique_sites)} برج آسيا بإحداثيات فريدة:")
             for i, site in enumerate(unique_sites):
                 print(f"  {i+1}. {site['site_name']} ({site['technology']}) - {site['distance']:.2f} كم")
             
             return unique_sites
             
         except Exception as e:
-            print(f"💥 خطأ في البحث عن أبراج آسيا القريبة: {str(e)}")
+            print(f" خطأ في البحث عن أبراج آسيا القريبة: {str(e)}")
             import traceback
             traceback.print_exc()
             return []
@@ -228,8 +228,8 @@ class NearbySitesService:
             current_lon = float(site_data['coordinates']['longitude'])
             current_site_id = str(site_data['site_id'])
             
-            print(f"🔍 البحث عن أبراج زين القريبة للبرج: {current_site_id}")
-            print(f"📍 الإحداثيات: {current_lat}, {current_lon}")
+            print(f" البحث عن أبراج زين القريبة للبرج: {current_site_id}")
+            print(f" الإحداثيات: {current_lat}, {current_lon}")
             
             all_nearby_sites = []
             
@@ -268,24 +268,24 @@ class NearbySitesService:
             # ترتيب حسب المسافة
             all_nearby_sites.sort(key=lambda x: x['distance'])
             
-            print(f"📊 تم العثور على {len(all_nearby_sites)} برج زين إجمالاً قبل الفلترة")
+            print(f" تم العثور على {len(all_nearby_sites)} برج زين إجمالاً قبل الفلترة")
             
             # التأكد من وجود مواقع
             if not all_nearby_sites:
-                print("❌ لم يتم العثور على أي أبراج زين قريبة")
+                print(" لم يتم العثور على أي أبراج زين قريبة")
                 return []
             
             # فلترة الإحداثيات المتشابهة والحصول على أقرب برجين بإحداثيات مختلفة
             unique_sites = NearbySitesService.filter_unique_coordinates(all_nearby_sites, limit)
             
-            print(f"✅ النتيجة النهائية: {len(unique_sites)} برج زين بإحداثيات فريدة:")
+            print(f" النتيجة النهائية: {len(unique_sites)} برج زين بإحداثيات فريدة:")
             for i, site in enumerate(unique_sites):
                 print(f"  {i+1}. {site['site_name']} ({site['technology']}) - {site['distance']:.2f} كم")
             
             return unique_sites
             
         except Exception as e:
-            print(f"💥 خطأ في البحث عن أبراج زين القريبة: {str(e)}")
+            print(f" خطأ في البحث عن أبراج زين القريبة: {str(e)}")
             import traceback
             traceback.print_exc()
             return []

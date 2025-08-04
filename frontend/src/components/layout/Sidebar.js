@@ -29,6 +29,7 @@ import {
   ExpandLess,
   ExpandMore,
   RadioButtonChecked,
+  History,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -46,6 +47,7 @@ const iconMap = {
   AdminPanelSettings,
   Security,
   People,
+  History,
 };
 
 const menuItems = [
@@ -73,6 +75,13 @@ const menuItems = [
         icon: "Compare",
         path: "/sheets-comparison",
         badge: "NEW",
+      },
+      {
+        id: "my-analysis", 
+        title: "تحليلاتي المحفوظة",
+        icon: "History",
+        path: "/my-analysis",
+        badge: "محفوظة",
       },
     ],
   },

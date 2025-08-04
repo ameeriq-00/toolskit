@@ -21,6 +21,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import ExcelAnalyzer from "./pages/Analysis/ExcelAnalyzer";
 import ExcelAnalyzerZ from "./pages/Analysis/ExcelAnalyzerZ";
 import SheetsComparison from "./pages/Analysis/SheetsComparison";
+import MyAnalysis from "./pages/Analysis/MyAnalysis"; 
 import TowerSearch from "./pages/Towers/TowerSearch";
 import UserManagement from "./pages/Admin/UserManagement";
 import SystemActivities from "./pages/Admin/SystemActivities";
@@ -96,6 +97,16 @@ const AppRoutes = () => {
           <ProtectedRoute requiredPermissions={["search_sites"]}>
             <MainLayout>
               <TowerSearch />
+            </MainLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-analysis"
+        element={
+          <ProtectedRoute>
+            <MainLayout>
+              <MyAnalysis />
             </MainLayout>
           </ProtectedRoute>
         }

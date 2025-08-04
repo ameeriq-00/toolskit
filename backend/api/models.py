@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from datetime import timedelta
+import hashlib
 import json
 
 # النماذج الموجودة مسبقاً (محتفظ بها)
@@ -323,6 +325,106 @@ class UserSession(models.Model):
         """إنهاء الجلسة"""
         self.is_active = False
         self.save()
+
+# ===== النموذج الجديد المبسط لحفظ نتائج التحليل =====
+
+class UserAnalysisResult(models.Model):
+    """نتائج التحليل المرتبطة بالمستخدمين مع انتهاء صلاحية شهرياً"""
+    
+    # المستخدم ونوع التحليل
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='analysis_results')
+    analysis_type = models.CharField(max_length=20, choices=[
+        ('standard', 'تحليل أسيا'),
+        ('z_format', 'تحليل زين'),
+        ('comparison', 'مقارنة الملفات')
+    ])
+    
+    # معلومات الملف الأصلي (بدون حفظ الملف نفسه)
+    original_filename = models.CharField(max_length=255)
+    display_filename = models.CharField(max_length=255)  # الاسم المعروض مع رقم النسخة
+    version_number = models.PositiveIntegerField(default=1)  # رقم النسخة
+    file_hash = models.CharField(max_length=64)  # للتحقق من المحتوى
+    
+    # نتائج التحليل
+    results = models.JSONField()
+    sheet_owner_number = models.CharField(max_length=20, blank=True, null=True)
+    
+    # التوقيت
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()  # سيتم تعيينه تلقائياً لشهر من الآن
+    last_accessed = models.DateTimeField(auto_now=True)  # ⬅️ إضافة هذا الحقل
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['expires_at']),
+            models.Index(fields=['last_accessed']),  # ⬅️ إضافة فهرس
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.display_filename} - {self.created_at.strftime('%Y-%m-%d')}"
+
+
+    def save(self, *args, **kwargs):
+        # تعيين تاريخ انتهاء الصلاحية إذا لم يكن محدداً (شهر من الآن)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(days=30)
+        
+        # إنشاء اسم العرض مع رقم النسخة إذا لم يكن محدداً
+        if not self.display_filename:
+            self.display_filename = self.generate_display_filename()
+            
+        super().save(*args, **kwargs)
+
+    def generate_display_filename(self):
+        """إنشاء اسم العرض مع رقم النسخة"""
+        base_name = self.original_filename
+        
+        # إزالة امتداد الملف إن وجد
+        if '.' in base_name:
+            name_part = base_name.rsplit('.', 1)[0]
+            extension = '.' + base_name.rsplit('.', 1)[1]
+        else:
+            name_part = base_name
+            extension = ''
+        
+        # البحث عن الملفات الموجودة بنفس الاسم الأساسي لنفس المستخدم
+        existing_files = UserAnalysisResult.objects.filter(
+            user=self.user,
+            original_filename=self.original_filename
+        ).exclude(pk=self.pk if self.pk else None)
+        
+        if not existing_files.exists():
+            # إذا لم توجد ملفات بنفس الاسم، لا نحتاج لرقم نسخة
+            self.version_number = 1
+            return base_name
+        else:
+            # إيجاد أعلى رقم نسخة موجود
+            max_version = existing_files.aggregate(
+                max_version=models.Max('version_number')
+            )['max_version'] or 0
+            
+            self.version_number = max_version + 1
+            return f"{name_part}v{self.version_number}{extension}"
+
+    @property
+    def is_expired(self):
+        """التحقق من انتهاء الصلاحية"""
+        return timezone.now() > self.expires_at
+
+    @property
+    def days_until_expiry(self):
+        """عدد الأيام المتبقية حتى انتهاء الصلاحية"""
+        if self.is_expired:
+            return 0
+        delta = self.expires_at - timezone.now()
+        return delta.days
+
+    @staticmethod
+    def generate_file_hash(file_content):
+        """إنشاء هاش للملف للتحقق من التكرار"""
+        return hashlib.sha256(file_content).hexdigest()
 
 class SecurityAlert(models.Model):
     """تنبيهات الأمان"""
