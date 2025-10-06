@@ -3,6 +3,12 @@
 *.pyo
 __pycache__/
 *.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
 
 # Virtual Environment
 venv/
@@ -18,16 +24,25 @@ db.sqlite3
 media/
 staticfiles/
 *.pot
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-dist/
-build/
+
+# Environment Variables - CRITICAL
+.env
+.env.local
+.env.production
+*.env
 
 # Node.js
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
 
+# React Build
+frontend/build/
+frontend/.env.local
+frontend/.env.production.local
 
 # IDEs and Editors
 .vscode/
@@ -36,15 +51,33 @@ node_modules/
 *.swo
 *.sublime-project
 *.sublime-workspace
-
-# OS generated files
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-*.env
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Docker
+docker-compose.override.yml
+*.pid
 
+# Logs
+logs/
+*.log
+
+# Backup files
+*.bak
+*.backup
+backups/
+
+# Temporary files
+*.tmp
+.cache/
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
