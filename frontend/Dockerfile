@@ -1,34 +1,14 @@
-# Multi-stage build
-
-# Stage 1: Build
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-ENV NODE_OPTIONS="--max-old-space-size=2048"
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --legacy-peer-deps
-
-# Copy source files
-COPY . .
-
-# Build argument for API URL
-ARG REACT_APP_API_URL
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-
-# Build the app
-RUN npm run build
-
-# Stage 2: Production
+# Stage 1: Production only (no build)
 FROM nginx:alpine
+
+# Set working directory
+WORKDIR /usr/share/nginx/html
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy built app from builder
-COPY --from=builder /app/build /usr/share/nginx/html
+# Copy the already built React app (make sure /build exists in repo)
+COPY build/ ./
 
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=3s \
