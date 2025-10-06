@@ -41,7 +41,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: rased_backend
+    # container_name: rased_backend
     restart: unless-stopped
     env_file:
       - ./backend/.env
