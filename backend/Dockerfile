@@ -30,7 +30,7 @@ COPY . /app/
 RUN mkdir -p /app/logs /app/media /app/staticfiles
 
 # Collect static files
-RUN python manage.py collectstatic --noinput || true
+# RUN python manage.py collectstatic --noinput || true
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && \
