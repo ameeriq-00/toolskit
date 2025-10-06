@@ -19,7 +19,8 @@ echo "🔒 Setting up SSL for domain: $DOMAIN"
 mkdir -p certbot/conf certbot/www
 
 # Stop nginx temporarily
-docker-compose stop nginx
+docker-compose up -d nginx
+sleep 10
 
 # Run certbot
 echo "📝 Requesting SSL certificate..."
