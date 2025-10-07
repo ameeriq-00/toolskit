@@ -6,7 +6,23 @@ import numpy as np
 from datetime import datetime
 from geopy.distance import geodesic
 from .models import SiteInformation
-from .utils import find_site_info  # ✅ الاستيراد الصحيح
+
+def find_site_info(site_id, site_info_dict):
+    """البحث عن معلومات البرج"""
+    if not site_id or not site_info_dict:
+        return None, None
+    
+    site_id_str = str(site_id).strip()
+    
+    # ✅ البحث بالترتيب: Z أولاً، ثم 2G, 3G, 4G
+    search_order = ['z', '2g', '3g', '4g']
+    
+    for site_type in search_order:
+        if site_type in site_info_dict:
+            if site_id_str in site_info_dict[site_type]:
+                return site_info_dict[site_type][site_id_str], site_type
+    
+    return None, None
 
 
 def analyze_movement_patterns_original(df):
@@ -154,43 +170,67 @@ def analyze_movement_patterns_original(df):
 
 
 def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
-    """Analyze movement patterns for Excel Analyzer Z"""
+    """Analyze movement patterns for Excel Analyzer Z - FIXED VERSION"""
     try:
-        print(f"Starting movement analysis with sheet owner: {sheet_owner_number}")
+        print(f"\n🔍 Starting movement analysis for Zain format")
+        print(f"📊 DataFrame shape: {df.shape}")
+        print(f"📋 Columns: {df.columns.tolist()}")
+        print(f"👤 Sheet owner: {sheet_owner_number}")
         
-        # Convert datatypes
-        df['Calling Number'] = df['Calling Number'].astype(str)
-        df['Called Number'] = df['Called Number'].astype(str)
+        # ✅ إصلاح 1: تحويل أنواع البيانات بشكل آمن
+        df['Calling Number'] = df['Calling Number'].astype(str).str.strip()
+        df['Called Number'] = df['Called Number'].astype(str).str.strip()
         df['CALL_TYPE'] = df['CALL_TYPE'].astype(str).str.strip()
-        df['Date'] = pd.to_datetime(df['Date'])
-        sheet_owner_number = str(sheet_owner_number)
+        df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+        sheet_owner_number = str(sheet_owner_number).strip()
 
-        # Filter relevant calls
+        # ✅ إصلاح 2: البحث عن عمود Site ID بمرونة
+        site_id_column = None
+        for col in df.columns:
+            if 'site' in col.lower() and 'id' in col.lower():
+                site_id_column = col
+                break
+        
+        if not site_id_column:
+            print("❌ لم يتم العثور على عمود Site ID")
+            return get_empty_movement_result()
+        
+        print(f"✅ تم العثور على عمود Site ID: {site_id_column}")
+
+        # ✅ إصلاح 3: تصفية المكالمات المتعلقة بصاحب الشريحة فقط
         relevant_calls = pd.concat([
-            df[(df['Calling Number'] == sheet_owner_number) & df['CALL_TYPE'].str.contains('1', na=False)],
-            df[(df['Called Number'] == sheet_owner_number) & df['CALL_TYPE'].str.contains('2', na=False)]
+            df[(df['Calling Number'] == sheet_owner_number) & 
+               (df['CALL_TYPE'].str.contains('1', na=False))],
+            df[(df['Called Number'] == sheet_owner_number) & 
+               (df['CALL_TYPE'].str.contains('2', na=False))]
         ])
 
         if relevant_calls.empty:
-            print("No relevant calls found for sheet owner")
+            print("❌ لا توجد مكالمات لصاحب الشريحة")
             return get_empty_movement_result()
 
-        # Sort by time
-        relevant_calls = relevant_calls.sort_values('Date')
+        print(f"✅ تم العثور على {len(relevant_calls)} مكالمة")
+
+        # ترتيب حسب الوقت
+        relevant_calls = relevant_calls.sort_values('Date').copy()
         relevant_calls['DateOnly'] = relevant_calls['Date'].dt.date
         relevant_calls['Week'] = relevant_calls['Date'].dt.isocalendar().week
         relevant_calls['WeekYear'] = relevant_calls['Date'].dt.strftime('%Y-W%W')
 
-        # Clean up Site IDs
-        relevant_calls['Site ID'] = relevant_calls['Site ID'].apply(
+        # ✅ إصلاح 4: تنظيف Site IDs
+        relevant_calls[site_id_column] = relevant_calls[site_id_column].apply(
             lambda x: str(int(float(x))) if pd.notnull(x) else ''
         )
+
+        print(f"📍 عدد المواقع الفريدة: {relevant_calls[site_id_column].nunique()}")
 
         daily_movements = {}
         weekly_movements = {}
         all_movements = []
+        sites_with_coords = 0
+        sites_without_coords = 0
 
-        # Generate daily movements
+        # ✅ إصلاح 5: توليد التنقلات اليومية
         for date, day_data in relevant_calls.groupby('DateOnly'):
             day_movements = []
             locations = []
@@ -199,28 +239,35 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
                 current = day_data.iloc[i]
                 next_record = day_data.iloc[i + 1]
                 
-                # ✅ استخدام find_site_info بشكل صحيح
-                current_site_data, _ = find_site_info(current['Site ID'], site_info)
-                next_site_data, _ = find_site_info(next_record['Site ID'], site_info)
+                # البحث عن معلومات الموقع
+                current_site_data, _ = find_site_info(current[site_id_column], site_info)
+                next_site_data, _ = find_site_info(next_record[site_id_column], site_info)
                 
-                if current_site_data and next_site_data:
+                # ✅ إصلاح 6: التحقق من وجود الإحداثيات
+                if (current_site_data and next_site_data and 
+                    current_site_data.get('lat') and current_site_data.get('long') and
+                    next_site_data.get('lat') and next_site_data.get('long')):
+                    
+                    sites_with_coords += 1
+                    
                     try:
                         distance = geodesic(
                             (float(current_site_data['lat']), float(current_site_data['long'])),
                             (float(next_site_data['lat']), float(next_site_data['long']))
                         ).kilometers
 
+                        # فقط التنقلات الفعلية (أكبر من 0)
                         if distance > 0:
                             movement = {
                                 'from_site': {
-                                    'id': str(current['Site ID']),
-                                    'name': current_site_data['name'],
+                                    'id': str(current[site_id_column]),
+                                    'name': current_site_data.get('name', 'Unknown'),
                                     'lat': float(current_site_data['lat']),
                                     'lon': float(current_site_data['long'])
                                 },
                                 'to_site': {
-                                    'id': str(next_record['Site ID']),
-                                    'name': next_site_data['name'],
+                                    'id': str(next_record[site_id_column]),
+                                    'name': next_site_data.get('name', 'Unknown'),
                                     'lat': float(next_site_data['lat']),
                                     'lon': float(next_site_data['long'])
                                 },
@@ -230,14 +277,17 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
                             day_movements.append(movement)
                             all_movements.append(movement)
                             
-                            # Track unique locations
+                            # تتبع المواقع الفريدة
                             for site in [movement['from_site'], movement['to_site']]:
                                 if site['id'] not in [loc['id'] for loc in locations]:
                                     locations.append(site)
 
                     except Exception as e:
-                        print(f"Error calculating distance: {str(e)}")
+                        print(f"⚠️  خطأ في حساب المسافة: {str(e)}")
+                else:
+                    sites_without_coords += 1
 
+            # حفظ التنقلات اليومية
             if day_movements:
                 date_str = date.strftime('%Y-%m-%d')
                 daily_movements[date_str] = {
@@ -246,21 +296,23 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
                     'total_distance': round(sum(m['distance'] for m in day_movements), 2),
                     'total_movements': len(day_movements)
                 }
+                print(f"📅 {date_str}: {len(day_movements)} تنقل, {round(sum(m['distance'] for m in day_movements), 2)} كم")
 
-        # Generate weekly movements similar to daily movements
+        # ✅ إصلاح 7: توليد التنقلات الأسبوعية
         for week, week_data in relevant_calls.groupby('WeekYear'):
             week_movements = []
-            locations = []
+            week_locations = []
             
             for i in range(len(week_data) - 1):
                 current = week_data.iloc[i]
                 next_record = week_data.iloc[i + 1]
                 
-                # ✅ استخدام find_site_info بشكل صحيح
-                current_site_data, _ = find_site_info(current['Site ID'], site_info)
-                next_site_data, _ = find_site_info(next_record['Site ID'], site_info)
+                current_site_data, _ = find_site_info(current[site_id_column], site_info)
+                next_site_data, _ = find_site_info(next_record[site_id_column], site_info)
                 
-                if current_site_data and next_site_data:
+                if (current_site_data and next_site_data and 
+                    current_site_data.get('lat') and next_site_data.get('lat')):
+                    
                     try:
                         distance = geodesic(
                             (float(current_site_data['lat']), float(current_site_data['long'])),
@@ -270,14 +322,14 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
                         if distance > 0:
                             movement = {
                                 'from_site': {
-                                    'id': str(current['Site ID']),
-                                    'name': current_site_data['name'],
+                                    'id': str(current[site_id_column]),
+                                    'name': current_site_data.get('name', 'Unknown'),
                                     'lat': float(current_site_data['lat']),
                                     'lon': float(current_site_data['long'])
                                 },
                                 'to_site': {
-                                    'id': str(next_record['Site ID']),
-                                    'name': next_site_data['name'],
+                                    'id': str(next_record[site_id_column]),
+                                    'name': next_site_data.get('name', 'Unknown'),
                                     'lat': float(next_site_data['lat']),
                                     'lon': float(next_site_data['long'])
                                 },
@@ -286,23 +338,30 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
                             }
                             week_movements.append(movement)
                             
-                            # Track unique locations
                             for site in [movement['from_site'], movement['to_site']]:
-                                if site['id'] not in [loc['id'] for loc in locations]:
-                                    locations.append(site)
+                                if site['id'] not in [loc['id'] for loc in week_locations]:
+                                    week_locations.append(site)
 
                     except Exception as e:
-                        print(f"Error calculating distance: {str(e)}")
+                        pass
 
             if week_movements:
                 weekly_movements[week] = {
                     'movements': week_movements,
-                    'locations': locations,
+                    'locations': week_locations,
                     'total_distance': round(sum(m['distance'] for m in week_movements), 2),
                     'total_movements': len(week_movements)
                 }
 
+        # حساب الإحصائيات
         movement_stats = calculate_movement_stats(all_movements)
+
+        print(f"\n✅ تم إنشاء تحليل التنقلات:")
+        print(f"   📅 أيام: {len(daily_movements)}")
+        print(f"   📊 أسابيع: {len(weekly_movements)}")
+        print(f"   🚶 إجمالي التنقلات: {len(all_movements)}")
+        print(f"   ✅ مواقع بإحداثيات: {sites_with_coords}")
+        print(f"   ❌ مواقع بدون إحداثيات: {sites_without_coords}")
 
         result = {
             'daily_movements': {
@@ -316,15 +375,10 @@ def analyze_movement_patterns_z(df, sheet_owner_number, site_info):
             'movement_stats': movement_stats
         }
 
-        print(f"Generated movement analysis with:")
-        print(f"- Daily movements: {len(daily_movements)} days")
-        print(f"- Weekly movements: {len(weekly_movements)} weeks")
-        print(f"- Total movements: {len(all_movements)}")
-
         return result
 
     except Exception as e:
-        print(f"Error in analyze_movement_patterns_z: {str(e)}")
+        print(f"❌ Error in analyze_movement_patterns_z: {str(e)}")
         import traceback
         traceback.print_exc()
         return get_empty_movement_result()

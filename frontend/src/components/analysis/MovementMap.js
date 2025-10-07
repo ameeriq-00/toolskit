@@ -8,9 +8,13 @@ import {
   Button,
   ToggleButton,
   ToggleButtonGroup,
-  Slider,
   Paper,
   Grid,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
 } from "@mui/material";
 import {
   Fullscreen as FullscreenIcon,
@@ -21,11 +25,11 @@ import {
   SkipPrevious as SkipPreviousIcon,
   DateRange as DateRangeIcon,
   Event as EventIcon,
+  CalendarToday as CalendarIcon,
 } from "@mui/icons-material";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// Fix for default markers
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -53,132 +57,144 @@ const MovementMap = ({ movementData }) => {
     ? periodsData.movements[periods[currentPeriodIndex]]
     : null;
 
-  // Clean up map on unmount
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.off();
+          mapInstanceRef.current.remove();
+        } catch (e) {
+          console.warn("Map cleanup:", e);
+        }
         mapInstanceRef.current = null;
       }
     };
   }, []);
 
-  // Initialize map
   useEffect(() => {
     if (!currentPeriodMovements || !mapRef.current) return;
 
-    // Clean up existing map
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
+      try {
+        mapInstanceRef.current.off();
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn("Map removal:", e);
+      }
       mapInstanceRef.current = null;
     }
 
-    // Clear the container
-    mapRef.current.innerHTML = "";
+    const timeoutId = setTimeout(() => {
+      if (!mapRef.current) return;
 
-    try {
-      // Get center coordinates
-      const getMapCenter = () => {
+      mapRef.current.innerHTML = "";
+
+      try {
+        const getMapCenter = () => {
+          if (!currentPeriodMovements.locations?.length) {
+            return [33.3152, 44.3661];
+          }
+          return [
+            currentPeriodMovements.locations[0].lat,
+            currentPeriodMovements.locations[0].lon,
+          ];
+        };
+
+        const map = L.map(mapRef.current, {
+          center: getMapCenter(),
+          zoom: 13,
+          zoomControl: true,
+          preferCanvas: true,
+        });
+
+        mapInstanceRef.current = map;
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap",
+        }).addTo(map);
+
+        const createCustomIcon = (color, size = 12) => {
+          return L.divIcon({
+            html: `<div style="background-color: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
+            className: "custom-icon",
+            iconSize: [size + 4, size + 4],
+            iconAnchor: [(size + 4) / 2, (size + 4) / 2],
+          });
+        };
+
         if (
-          !currentPeriodMovements.locations ||
-          !currentPeriodMovements.locations.length
+          currentPeriodMovements.movements &&
+          Array.isArray(currentPeriodMovements.movements)
         ) {
-          return [33.3152, 44.3661]; // Default to Baghdad
-        }
-        return [
-          currentPeriodMovements.locations[0].lat,
-          currentPeriodMovements.locations[0].lon,
-        ];
-      };
+          currentPeriodMovements.movements.forEach((movement) => {
+            L.polyline(
+              [
+                [movement.from_site.lat, movement.from_site.lon],
+                [movement.to_site.lat, movement.to_site.lon],
+              ],
+              {
+                color: "#2196f3",
+                weight: 3,
+                opacity: 0.8,
+                dashArray: "10, 10",
+              }
+            ).addTo(map);
 
-      // Create new map
-      const map = L.map(mapRef.current, {
-        center: getMapCenter(),
-        zoom: 13,
-        zoomControl: true,
-      });
-
-      mapInstanceRef.current = map;
-
-      // Add tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      // Arrow options for movement lines
-      const arrowOptions = {
-        color: "#2196f3",
-        weight: 3,
-        opacity: 0.8,
-        dashArray: "10, 10",
-      };
-
-      // Create custom icons
-      const createCustomIcon = (color, size = 12) => {
-        return L.divIcon({
-          html: `<div style="
-            background-color: ${color}; 
-            width: ${size}px; 
-            height: ${size}px; 
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 4px rgba(0,0,0,0.5);
-          "></div>`,
-          className: "custom-icon",
-          iconSize: [size + 4, size + 4],
-          iconAnchor: [(size + 4) / 2, (size + 4) / 2],
-        });
-      };
-
-      // Render movements
-      if (
-        currentPeriodMovements.movements &&
-        Array.isArray(currentPeriodMovements.movements)
-      ) {
-        currentPeriodMovements.movements.forEach((movement, index) => {
-          // Add movement line
-          const polyline = L.polyline(
-            [
+            const fromMarker = L.marker(
               [movement.from_site.lat, movement.from_site.lon],
+              { icon: createCustomIcon("#4CAF50", 14) }
+            ).addTo(map);
+
+            const toMarker = L.marker(
               [movement.to_site.lat, movement.to_site.lon],
-            ],
-            arrowOptions
-          ).addTo(map);
+              { icon: createCustomIcon("#f44336", 14) }
+            ).addTo(map);
 
-          // Add markers
-          const fromMarker = L.marker(
-            [movement.from_site.lat, movement.from_site.lon],
-            { icon: createCustomIcon("#4CAF50") }
-          ).addTo(map);
+            fromMarker.bindPopup(`
+              <div style="min-width: 200px;">
+                <strong>📍 ${movement.from_site.name}</strong><br>
+                <span style="color: #666;">الموقع: ${
+                  movement.from_site.id
+                }</span><br>
+                <span style="color: #666;">⏰ ${
+                  movement.timestamp || "غير محدد"
+                }</span>
+              </div>
+            `);
 
-          const toMarker = L.marker(
-            [movement.to_site.lat, movement.to_site.lon],
-            { icon: createCustomIcon("#f44336") }
-          ).addTo(map);
+            toMarker.bindPopup(`
+              <div style="min-width: 200px;">
+                <strong>🎯 ${movement.to_site.name}</strong><br>
+                <span style="color: #666;">الموقع: ${movement.to_site.id}</span><br>
+                <span style="color: #2196f3;">📏 المسافة: ${movement.distance} كم</span>
+              </div>
+            `);
+          });
 
-          // Add popups
-          fromMarker.bindPopup(`
-            <div>
-              <strong>${movement.from_site.name}</strong><br>
-              الوقت: ${movement.timestamp || "غير محدد"}
-            </div>
-          `);
-
-          toMarker.bindPopup(`
-            <div>
-              <strong>${movement.to_site.name}</strong><br>
-              الوجهة
-            </div>
-          `);
-        });
+          if (currentPeriodMovements.locations?.length > 0) {
+            try {
+              const bounds = L.latLngBounds(
+                currentPeriodMovements.locations.map((loc) => [
+                  loc.lat,
+                  loc.lon,
+                ])
+              );
+              map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            } catch (e) {
+              console.warn("Fit bounds:", e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Map initialization error:", error);
       }
-    } catch (error) {
-      console.error("Error initializing movement map:", error);
-    }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [currentPeriodMovements, mapKey, isFullScreen]);
 
-  // Playback effect
   useEffect(() => {
     let interval;
     if (isPlaying && periods.length > 0) {
@@ -191,7 +207,6 @@ const MovementMap = ({ movementData }) => {
     return () => clearInterval(interval);
   }, [isPlaying, periods.length, playbackSpeed]);
 
-  // Reset when view mode changes
   useEffect(() => {
     setIsPlaying(false);
     setCurrentPeriodIndex(0);
@@ -204,8 +219,9 @@ const MovementMap = ({ movementData }) => {
     }
   };
 
-  const handleSliderChange = (event, newValue) => {
-    setCurrentPeriodIndex(newValue);
+  const handlePeriodChange = (event) => {
+    setCurrentPeriodIndex(event.target.value);
+    setIsPlaying(false);
   };
 
   const togglePlayback = () => {
@@ -215,35 +231,31 @@ const MovementMap = ({ movementData }) => {
   const handleNext = () => {
     if (currentPeriodIndex < periods.length - 1) {
       setCurrentPeriodIndex((prev) => prev + 1);
+      setIsPlaying(false);
     }
   };
 
   const handlePrevious = () => {
     if (currentPeriodIndex > 0) {
       setCurrentPeriodIndex((prev) => prev - 1);
+      setIsPlaying(false);
     }
   };
 
-  // ✅ FIXED: Better error handling for week format
   const getDateRangeForWeek = (weekStr) => {
     try {
-      // التحقق من أن weekStr موجود وصالح
       if (!weekStr || typeof weekStr !== "string") {
-        console.warn("Invalid weekStr:", weekStr);
         return "أسبوع غير صالح";
       }
 
-      // محاولة استخراج السنة ورقم الأسبوع
       const matches = weekStr.match(/(\d{4})-W(\d{1,2})/);
       if (!matches || matches.length < 3) {
-        console.warn("Week format not recognized:", weekStr);
-        return weekStr; // إرجاع القيمة كما هي إذا لم تطابق النمط
+        return weekStr;
       }
 
       const year = parseInt(matches[1]);
       const weekNum = parseInt(matches[2]);
 
-      // التحقق من صحة القيم
       if (
         isNaN(year) ||
         isNaN(weekNum) ||
@@ -252,11 +264,9 @@ const MovementMap = ({ movementData }) => {
         weekNum < 1 ||
         weekNum > 53
       ) {
-        console.warn("Invalid year or week number:", year, weekNum);
         return weekStr;
       }
 
-      // حساب تاريخ بداية الأسبوع
       const firstDayOfYear = new Date(year, 0, 1);
       const daysToAdd = (weekNum - 1) * 7;
       const weekStart = new Date(firstDayOfYear);
@@ -269,16 +279,44 @@ const MovementMap = ({ movementData }) => {
         "ar-IQ"
       )} - ${weekEnd.toLocaleDateString("ar-IQ")}`;
     } catch (error) {
-      console.error("Error in getDateRangeForWeek:", error, weekStr);
+      console.error("Date range error:", error);
       return "خطأ في التاريخ";
     }
   };
 
   const toggleFullScreen = () => {
+    if (mapInstanceRef.current) {
+      try {
+        mapInstanceRef.current.off();
+        mapInstanceRef.current.remove();
+      } catch (e) {
+        console.warn("Fullscreen cleanup:", e);
+      }
+      mapInstanceRef.current = null;
+    }
+
     setIsFullScreen(!isFullScreen);
     setTimeout(() => {
       setMapKey((prev) => prev + 1);
-    }, 100);
+    }, 300);
+  };
+
+  const formatPeriodLabel = (period, index) => {
+    if (viewMode === "weekly") {
+      return `الأسبوع ${index + 1}: ${getDateRangeForWeek(period)}`;
+    } else {
+      try {
+        const date = new Date(period);
+        return `اليوم ${index + 1}: ${date.toLocaleDateString("ar-IQ", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}`;
+      } catch (e) {
+        return `اليوم ${index + 1}: ${period}`;
+      }
+    }
   };
 
   if (!movementData) {
@@ -301,7 +339,6 @@ const MovementMap = ({ movementData }) => {
     );
   }
 
-  // ✅ FIXED: Better validation for empty periods
   if (!periods || periods.length === 0) {
     return (
       <Box
@@ -326,37 +363,65 @@ const MovementMap = ({ movementData }) => {
     if (!currentPeriodMovements) return null;
 
     return (
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Paper sx={{ p: 2, mb: 2, bgcolor: "background.default" }}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="subtitle2">إجمالي التنقلات</Typography>
-            <Typography variant="h6">
-              {currentPeriodMovements.total_movements || 0}
-            </Typography>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="caption" color="text.secondary">
+                إجمالي التنقلات
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#2196f3" }}
+              >
+                {currentPeriodMovements.total_movements || 0}
+              </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="subtitle2">المسافة الإجمالية</Typography>
-            <Typography variant="h6">
-              {currentPeriodMovements.total_distance || 0} كم
-            </Typography>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="caption" color="text.secondary">
+                المسافة الإجمالية
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#4CAF50" }}
+              >
+                {currentPeriodMovements.total_distance || 0} كم
+              </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="subtitle2">المواقع الفريدة</Typography>
-            <Typography variant="h6">
-              {currentPeriodMovements.locations?.length || 0}
-            </Typography>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="caption" color="text.secondary">
+                المواقع الفريدة
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{ fontWeight: "bold", color: "#FF9800" }}
+              >
+                {currentPeriodMovements.locations?.length || 0}
+              </Typography>
+            </Box>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="subtitle2">الفترة الحالية</Typography>
-            <Typography variant="h6">
-              {viewMode === "weekly"
-                ? getDateRangeForWeek(periods[currentPeriodIndex])
-                : periods[currentPeriodIndex]
-                ? new Date(periods[currentPeriodIndex]).toLocaleDateString(
-                    "ar-IQ"
-                  )
-                : "غير محدد"}
-            </Typography>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="caption" color="text.secondary">
+                الفترة الحالية
+              </Typography>
+              <Chip
+                icon={<CalendarIcon />}
+                label={
+                  formatPeriodLabel(
+                    periods[currentPeriodIndex],
+                    currentPeriodIndex
+                  ).split(": ")[1]
+                }
+                color="primary"
+                variant="outlined"
+                sx={{ mt: 0.5, fontWeight: "bold" }}
+              />
+            </Box>
           </Grid>
         </Grid>
       </Paper>
@@ -371,20 +436,27 @@ const MovementMap = ({ movementData }) => {
         ref={mapRef}
         key={mapKey}
         style={{
-          height: isFullScreen ? "80vh" : "500px",
+          height: isFullScreen ? "70vh" : "500px",
           width: "100%",
           borderRadius: 8,
         }}
       />
 
-      <Box sx={{ p: 2, bgcolor: "background.paper" }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+      <Paper sx={{ p: 2, mt: 2, bgcolor: "background.paper" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            mb: 2,
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
           <ToggleButtonGroup
             value={viewMode}
             exclusive
             onChange={handleViewModeChange}
             size="small"
-            sx={{ mr: 2 }}
           >
             <ToggleButton value="daily">
               <EventIcon sx={{ mr: 1 }} />
@@ -396,50 +468,109 @@ const MovementMap = ({ movementData }) => {
             </ToggleButton>
           </ToggleButtonGroup>
 
-          <Button
-            onClick={handlePrevious}
-            disabled={currentPeriodIndex === 0}
-            sx={{ mr: 1 }}
-          >
-            <SkipPreviousIcon />
-          </Button>
-          <Button onClick={togglePlayback} sx={{ mr: 1 }}>
-            {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-          </Button>
-          <Button
-            onClick={handleNext}
-            disabled={currentPeriodIndex === periods.length - 1}
-          >
-            <SkipNextIcon />
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={handlePrevious}
+              disabled={currentPeriodIndex === 0}
+              size="small"
+            >
+              <SkipPreviousIcon />
+              السابق
+            </Button>
+            <Button
+              variant={isPlaying ? "contained" : "outlined"}
+              onClick={togglePlayback}
+              size="small"
+              color={isPlaying ? "error" : "primary"}
+            >
+              {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+              {isPlaying ? "إيقاف" : "تشغيل"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleNext}
+              disabled={currentPeriodIndex === periods.length - 1}
+              size="small"
+            >
+              التالي
+              <SkipNextIcon />
+            </Button>
+          </Box>
 
           <Button
             variant="contained"
             onClick={toggleFullScreen}
             sx={{ ml: "auto" }}
+            size="small"
           >
-            {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            {isFullScreen ? (
+              <>
+                <FullscreenExitIcon sx={{ mr: 1 }} />
+                تصغير
+              </>
+            ) : (
+              <>
+                <FullscreenIcon sx={{ mr: 1 }} />
+                ملء الشاشة
+              </>
+            )}
           </Button>
         </Box>
 
-        <Slider
-          value={currentPeriodIndex}
-          onChange={handleSliderChange}
-          min={0}
-          max={Math.max(0, periods.length - 1)}
-          valueLabelDisplay="auto"
-          valueLabelFormat={(value) => {
-            // ✅ FIXED: التحقق من وجود القيمة قبل الوصول إليها
-            if (!periods[value]) {
-              return "غير متوفر";
-            }
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <InputLabel>اختر الفترة الزمنية</InputLabel>
+          <Select
+            value={currentPeriodIndex}
+            onChange={handlePeriodChange}
+            label="اختر الفترة الزمنية"
+            MenuProps={{ PaperProps: { style: { maxHeight: 400 } } }}
+          >
+            {periods.map((period, index) => (
+              <MenuItem key={index} value={index}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: "100%",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography>{formatPeriodLabel(period, index)}</Typography>
+                  {periodsData.movements[period] && (
+                    <Chip
+                      size="small"
+                      label={`${
+                        periodsData.movements[period].total_movements || 0
+                      } تنقل`}
+                      color={
+                        index === currentPeriodIndex ? "primary" : "default"
+                      }
+                      sx={{ ml: 2 }}
+                    />
+                  )}
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-            return viewMode === "weekly"
-              ? getDateRangeForWeek(periods[value])
-              : new Date(periods[value]).toLocaleDateString("ar-IQ");
-          }}
-        />
-      </Box>
+        <Box
+          sx={{ mt: 2, p: 1.5, bgcolor: "background.default", borderRadius: 1 }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.5 }}
+          >
+            💡 <strong>نصيحة:</strong> استخدم القائمة المنسدلة للانتقال مباشرة
+            لأي يوم.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            🗺️ انقر على العلامات لمشاهدة التفاصيل.
+          </Typography>
+        </Box>
+      </Paper>
     </Box>
   );
 
@@ -448,7 +579,7 @@ const MovementMap = ({ movementData }) => {
       {!isFullScreen && <MapContent />}
 
       <Dialog fullScreen open={isFullScreen} onClose={toggleFullScreen}>
-        <DialogContent sx={{ p: 2 }}>
+        <DialogContent sx={{ p: 2, bgcolor: "background.default" }}>
           <MapContent />
         </DialogContent>
       </Dialog>
