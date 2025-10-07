@@ -1,7 +1,20 @@
 // frontend/src/services/api.js - الملف الأصلي الكامل مع التصحيحات
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  if (window.location.protocol === "https:") {
+    return `https://${window.location.hostname}`;
+  }
+
+  return "http://localhost:8000";
+};
+
+const API_URL = getApiUrl();
+console.log("🔗 API URL configured:", API_URL);
 
 // Create axios instance
 const api = axios.create({
