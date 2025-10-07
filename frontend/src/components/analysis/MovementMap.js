@@ -1,3 +1,4 @@
+// frontend/src/components/analysis/MovementMap.js
 import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
@@ -78,7 +79,10 @@ const MovementMap = ({ movementData }) => {
     try {
       // Get center coordinates
       const getMapCenter = () => {
-        if (!currentPeriodMovements.locations.length) {
+        if (
+          !currentPeriodMovements.locations ||
+          !currentPeriodMovements.locations.length
+        ) {
           return [33.3152, 44.3661]; // Default to Baghdad
         }
         return [
@@ -128,7 +132,10 @@ const MovementMap = ({ movementData }) => {
       };
 
       // Render movements
-      if (currentPeriodMovements.movements) {
+      if (
+        currentPeriodMovements.movements &&
+        Array.isArray(currentPeriodMovements.movements)
+      ) {
         currentPeriodMovements.movements.forEach((movement, index) => {
           // Add movement line
           const polyline = L.polyline(
@@ -217,22 +224,54 @@ const MovementMap = ({ movementData }) => {
     }
   };
 
+  // ✅ FIXED: Better error handling for week format
   const getDateRangeForWeek = (weekStr) => {
-    const matches = weekStr.match(/(\d{4})-W(\d{1,2})/);
-    if (!matches) return "Invalid Week";
+    try {
+      // التحقق من أن weekStr موجود وصالح
+      if (!weekStr || typeof weekStr !== "string") {
+        console.warn("Invalid weekStr:", weekStr);
+        return "أسبوع غير صالح";
+      }
 
-    const year = parseInt(matches[1]);
-    const weekNum = parseInt(matches[2]);
-    const firstDayOfYear = new Date(year, 0, 1);
-    const daysToAdd = (weekNum - 1) * 7;
-    const weekStart = new Date(firstDayOfYear);
-    weekStart.setDate(firstDayOfYear.getDate() + daysToAdd);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
+      // محاولة استخراج السنة ورقم الأسبوع
+      const matches = weekStr.match(/(\d{4})-W(\d{1,2})/);
+      if (!matches || matches.length < 3) {
+        console.warn("Week format not recognized:", weekStr);
+        return weekStr; // إرجاع القيمة كما هي إذا لم تطابق النمط
+      }
 
-    return `${weekStart.toLocaleDateString(
-      "ar-IQ"
-    )} - ${weekEnd.toLocaleDateString("ar-IQ")}`;
+      const year = parseInt(matches[1]);
+      const weekNum = parseInt(matches[2]);
+
+      // التحقق من صحة القيم
+      if (
+        isNaN(year) ||
+        isNaN(weekNum) ||
+        year < 1900 ||
+        year > 2100 ||
+        weekNum < 1 ||
+        weekNum > 53
+      ) {
+        console.warn("Invalid year or week number:", year, weekNum);
+        return weekStr;
+      }
+
+      // حساب تاريخ بداية الأسبوع
+      const firstDayOfYear = new Date(year, 0, 1);
+      const daysToAdd = (weekNum - 1) * 7;
+      const weekStart = new Date(firstDayOfYear);
+      weekStart.setDate(firstDayOfYear.getDate() + daysToAdd);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      return `${weekStart.toLocaleDateString(
+        "ar-IQ"
+      )} - ${weekEnd.toLocaleDateString("ar-IQ")}`;
+    } catch (error) {
+      console.error("Error in getDateRangeForWeek:", error, weekStr);
+      return "خطأ في التاريخ";
+    }
   };
 
   const toggleFullScreen = () => {
@@ -257,6 +296,27 @@ const MovementMap = ({ movementData }) => {
       >
         <Typography variant="h6" color="text.secondary">
           لا توجد بيانات تنقل متاحة
+        </Typography>
+      </Box>
+    );
+  }
+
+  // ✅ FIXED: Better validation for empty periods
+  if (!periods || periods.length === 0) {
+    return (
+      <Box
+        sx={{
+          height: "500px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "2px dashed #333",
+          borderRadius: 2,
+          backgroundColor: "background.paper",
+        }}
+      >
+        <Typography variant="h6" color="text.secondary">
+          لا توجد فترات زمنية متاحة للعرض
         </Typography>
       </Box>
     );
@@ -291,9 +351,11 @@ const MovementMap = ({ movementData }) => {
             <Typography variant="h6">
               {viewMode === "weekly"
                 ? getDateRangeForWeek(periods[currentPeriodIndex])
-                : new Date(periods[currentPeriodIndex]).toLocaleDateString(
+                : periods[currentPeriodIndex]
+                ? new Date(periods[currentPeriodIndex]).toLocaleDateString(
                     "ar-IQ"
-                  )}
+                  )
+                : "غير محدد"}
             </Typography>
           </Grid>
         </Grid>
@@ -366,11 +428,16 @@ const MovementMap = ({ movementData }) => {
           min={0}
           max={Math.max(0, periods.length - 1)}
           valueLabelDisplay="auto"
-          valueLabelFormat={(value) =>
-            viewMode === "weekly"
+          valueLabelFormat={(value) => {
+            // ✅ FIXED: التحقق من وجود القيمة قبل الوصول إليها
+            if (!periods[value]) {
+              return "غير متوفر";
+            }
+
+            return viewMode === "weekly"
               ? getDateRangeForWeek(periods[value])
-              : new Date(periods[value]).toLocaleDateString("ar-IQ")
-          }
+              : new Date(periods[value]).toLocaleDateString("ar-IQ");
+          }}
         />
       </Box>
     </Box>

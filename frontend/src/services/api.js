@@ -1,4 +1,3 @@
-// frontend/src/services/api.js - الملف الأصلي الكامل مع التصحيحات
 import axios from "axios";
 
 const getApiUrl = () => {
